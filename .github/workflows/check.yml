@@ -22,5 +22,3 @@ jobs:
         with:
           command: fmt
           args: --check
-  clippy:
-  doc:
