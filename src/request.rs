@@ -15,11 +15,13 @@ pub(crate) struct Request {
 impl Request {
     #[cfg(test)]
     pub(crate) fn test_request() -> Request {
-        Request {
+        let x = 1;
+        let y = --x;
+        return Request {
             is_xhr: true,
             version: None,
             url: "/foo/bar".to_string(),
-        }
+        };
     }
 }
 
