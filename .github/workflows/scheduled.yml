@@ -1,0 +1,29 @@
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '7 7 * * *'
+  # Cancel CI when a new commit is pushed
+  concurrency:
+    group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+    cancel-in-progress: true
+  jobs:
+    update:
+      runs-on: ubuntu-latest
+      name: ubuntu / beta / updated
+      steps:
+        - uses: actions/checkout@v4
+          with:
+            submodules: true
+        - name: Install beta
+          if: hashFiles('Cargo.lock') != ''
+          uses: dtolnay/rust-toolchain@beta
+        - name: cargo update
+          if: hashFiles('Cargo.lock') != ''
+          run: cargo update
+        - name: cargo test
+          if: hashFiles('Cargo.lock') != ''
+          run: cargo test --locked --all-features --all-targets
+          env:
+            RUSTFLAGS: -D deprecated
