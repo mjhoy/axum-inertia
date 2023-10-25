@@ -1,0 +1,48 @@
+on:
+  push:
+    branches: [main]
+  pull_request:
+name: check
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    name: stable / fmt
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install stable
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: rustfmt
+      - name: cargo fmt --check
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --check
+  clippy:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.toolchain }} / clippy
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain: [stable, beta]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install ${{ matrix.toolchain }}
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          default: true
+          components: clippy
+      - name: cargo clippy
+        uses: giraffate/clippy-action@v1
+        with:
+          reporter: 'github-pr-review'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          clippy_flags: --all-targets
