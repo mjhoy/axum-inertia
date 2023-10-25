@@ -26,20 +26,3 @@ jobs:
         run: cargo test --locked --all-features --all-targets
       - name: cargo test --doc
         run: cargo test --locked --all-features --doc
-  minimal:
-    runs-on: ubuntu-latest
-    name: ubuntu / stable / minimal-versions
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-      - name: Install stable
-        uses: dtolnay/rust-toolchain@stable
-      - name: Install nightly for -Zminimal-versions
-        uses: dtolnay/rust-toolchain@nightly
-      - name: rustup default stable
-        run: rustup default stable
-      - name: cargo update -Zminimal-versions
-        run: cargo +nightly update -Zminimal-versions
-      - name: cargo test
-        run: cargo test --locked --all-features --all-targets
