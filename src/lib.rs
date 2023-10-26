@@ -1,3 +1,50 @@
+//! Implementation of the [inertia.js] protocol for axum.
+//!
+//! [inertia.js]: https://inertiajs.com
+//!
+//! # Getting started
+//!
+//! The `Inertia` struct is available as an axum [Extractor] and can
+//! be used in handlers like so:
+//!
+//! ```rust
+//! use axum::response::IntoResponse;
+//! use axum_inertia::Inertia;
+//! use serde_json::json;
+//!
+//! async fn get_posts(i: Inertia) -> impl IntoResponse {
+//!     i.render("Posts/Index", json!({ "posts": vec!["post one", "post two"] }))
+//! }
+//! ```
+//! [Extractor]: https://docs.rs/axum/latest/axum/#extractors
+//!
+//! The extractor requires that you use [Router#with_state] to
+//! initialize Inertia. In fact, it won't compile if you don't!
+//!
+//! The renderer needs to know how to build the initial page load. You
+//! can pass a standard development Vite configuration like so:
+//!
+//! [Router#with_state]: https://docs.rs/axum/latest/axum/struct.Router.html#method.with_state
+//!
+//! ```rust
+//! use axum_inertia::{vite::Vite, Inertia};
+//! use axum::{Router, routing::get, response::IntoResponse};
+//!
+//! # async fn get_posts(_i: Inertia) -> impl IntoResponse { "foo" }
+//! // Config for the client-side here:
+//! let vite = Vite {
+//!     port: 5173,
+//!     main: "src/main.ts",
+//!     lang: "en",
+//!     title: "Tuvu",
+//! };
+//!
+//! let inertia = Inertia::new(vite);
+//! let app: Router = Router::new()
+//!     .route("/", get(get_posts))
+//!     .with_state(inertia);
+//! ```
+
 use async_trait::async_trait;
 use axum::extract::{FromRef, FromRequestParts};
 use http::{request::Parts, StatusCode};

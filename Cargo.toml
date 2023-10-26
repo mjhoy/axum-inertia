@@ -20,3 +20,4 @@ indoc = "2.0.4"
 [dev-dependencies]
 reqwest = "0.11.22"
 tokio = { version = "1.33.0", features = ["full"] }
+tower-http = { version = "0.4.4", features = ["set-header", "trace"] }
