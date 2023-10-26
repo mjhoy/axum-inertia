@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use axum::extract::{FromRef, FromRequestParts};
 use http::{request::Parts, StatusCode};
@@ -11,11 +9,13 @@ use serde::Serialize;
 mod page;
 mod request;
 mod response;
+pub mod vite;
 
 #[derive(Clone)]
 pub struct Inertia {
     request: Option<Request>,
-    layout: Arc<dyn Fn(String) -> String + Sync + Send>,
+    html_head: String,
+    html_lang: String,
 }
 
 #[async_trait]
@@ -39,15 +39,16 @@ impl Inertia {
     ///
     /// `layout` is a function from a json string (props) to the HTML
     /// layout.
-    pub fn new(layout: Box<dyn Fn(String) -> String + Sync + Send>) -> Inertia {
+    pub fn new(layout: impl HtmlLayout) -> Inertia {
         Inertia {
             request: None,
-            layout: Arc::new(layout),
+            html_head: layout.html_head(),
+            html_lang: layout.html_lang(),
         }
     }
 
-    pub fn render<S: Serialize>(self, component: &'static str, props: S) -> Response {
-        let request = self.request.expect("request set on inertia");
+    pub fn render<'a, S: Serialize>(self, component: &'static str, props: S) -> Response {
+        let request = self.request.expect("no request set");
         let url = request.url.clone();
         let page = Page {
             component,
@@ -58,9 +59,15 @@ impl Inertia {
         Response {
             page,
             request,
-            layout: self.layout.clone(),
+            html_head: self.html_head,
+            html_lang: self.html_lang,
         }
     }
+}
+
+pub trait HtmlLayout {
+    fn html_lang(&self) -> String;
+    fn html_head(&self) -> String;
 }
 
 #[cfg(test)]
@@ -70,11 +77,28 @@ mod tests {
     use reqwest::StatusCode;
     use std::net::TcpListener;
 
+    struct DumbHtmlLayout {
+        html_lang: String,
+        html_head: String,
+    }
+
+    impl HtmlLayout for DumbHtmlLayout {
+        fn html_lang(&self) -> String {
+            self.html_lang.clone()
+        }
+        fn html_head(&self) -> String {
+            self.html_head.clone()
+        }
+    }
+
     #[tokio::test]
     async fn it_works() {
         async fn handler(_: Inertia) {}
 
-        let layout = Box::new(|string| format!("{}", string));
+        let layout = DumbHtmlLayout {
+            html_lang: "en".to_string(),
+            html_head: "<title>Foo</title>".to_string(),
+        };
 
         let inertia = Inertia::new(layout);
 

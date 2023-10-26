@@ -1,7 +1,6 @@
-use std::sync::Arc;
-
 use crate::{page::Page, request::Request};
 use axum::response::{Html, IntoResponse, Json};
+use indoc::formatdoc;
 
 /// An Inertia response.
 ///
@@ -10,12 +9,24 @@ use axum::response::{Html, IntoResponse, Json};
 pub struct Response {
     pub(crate) request: Request,
     pub(crate) page: Page,
-    pub(crate) layout: Arc<dyn Fn(String) -> String + Send + Send>,
+    pub(crate) html_head: String,
+    pub(crate) html_lang: String,
 }
 
 impl Response {
     fn initial_html(&self) -> String {
-        (self.layout)(serde_json::to_string(&self.page).unwrap())
+        formatdoc! {r#"
+            <!doctype html>
+            <html lang="{}">
+                <head>
+                    {}
+                </head>
+                <body>
+                    <div id="app" data-page='{}'></div>
+                </body>
+            </html>          
+        "#, self.html_lang, self.html_head, serde_json::to_string(&self.page).unwrap()
+        }
     }
 }
 
@@ -32,6 +43,8 @@ impl IntoResponse for Response {
 
 #[cfg(test)]
 mod tests {
+    use indoc::indoc;
+
     use super::*;
 
     #[tokio::test]
@@ -47,12 +60,15 @@ mod tests {
             version: None,
         };
 
-        let layout = Arc::new(|string| format!("foo {}", string));
+        let html_head = indoc! {r#"
+          <title>Foo!</title>
+        "#};
 
         let response = Response {
             request,
             page,
-            layout,
+            html_head: html_head.to_string(),
+            html_lang: "en".to_string(),
         }
         .into_response();
         let body = hyper::body::to_bytes(response.into_body())
