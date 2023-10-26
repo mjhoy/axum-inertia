@@ -94,7 +94,7 @@ impl Inertia {
         }
     }
 
-    pub fn render<'a, S: Serialize>(self, component: &'static str, props: S) -> Response {
+    pub fn render<S: Serialize>(self, component: &'static str, props: S) -> Response {
         let request = self.request.expect("no request set");
         let url = request.url.clone();
         let page = Page {
