@@ -4,7 +4,7 @@
 //!
 //! # Getting started
 //!
-//! The `Inertia` struct is available as an axum [Extractor] and can
+//! The [Inertia] struct is available as an axum [Extractor] and can
 //! be used in handlers like so:
 //!
 //! ```rust
@@ -84,8 +84,8 @@ where
 impl Inertia {
     /// Constructs a new Inertia object.
     ///
-    /// `layout` is a function from a json string (props) to the HTML
-    /// layout.
+    /// `layout` provides information about how to render the initial
+    /// page load. See more at [HtmlLayout].
     pub fn new(layout: impl HtmlLayout) -> Inertia {
         Inertia {
             request: None,
@@ -94,6 +94,7 @@ impl Inertia {
         }
     }
 
+    /// Renders an Inertia response.
     pub fn render<S: Serialize>(self, component: &'static str, props: S) -> Response {
         let request = self.request.expect("no request set");
         let url = request.url.clone();
@@ -112,6 +113,14 @@ impl Inertia {
     }
 }
 
+/// A type the implements `HtmlLayout` provides information needed for
+/// rendering the initial page load.
+///
+/// Currently, this just means giving up strings for the `lang`
+/// attribute for the base `html` element, and the content of the
+/// `head` element.
+///
+/// See the [vite::Vite] struct that implements this trait.
 pub trait HtmlLayout {
     fn html_lang(&self) -> String;
     fn html_head(&self) -> String;
