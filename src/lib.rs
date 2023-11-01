@@ -1,47 +1,104 @@
-//! Implementation of the [inertia.js] protocol for axum.
-//!
-//! [inertia.js]: https://inertiajs.com
+//! An implementation of the [inertia.js] protocol for [axum].
 //!
 //! # Getting started
 //!
-//! The [Inertia] struct is available as an axum [Extractor] and can
-//! be used in handlers like so:
+//! First, you'll need to provide your axum routes with [Inertia]
+//! state. This state boils down to two things: an optional string
+//! representing the [asset version] and a function that takes
+//! serialized props and returns an HTML string for the initial page
+//! load.
 //!
-//! ```rust
-//! use axum::response::IntoResponse;
-//! use axum_inertia::Inertia;
-//! use serde_json::json;
-//!
-//! async fn get_posts(i: Inertia) -> impl IntoResponse {
-//!     i.render("Posts/Index", json!({ "posts": vec!["post one", "post two"] }))
-//! }
-//! ```
-//! [Extractor]: https://docs.rs/axum/latest/axum/#extractors
-//!
-//! The extractor requires that you use [Router#with_state] to
-//! initialize Inertia. In fact, it won't compile if you don't!
-//!
-//! The renderer needs to know how to build the initial page load. You
-//! can pass a standard development Vite configuration like so:
-//!
-//! [Router#with_state]: https://docs.rs/axum/latest/axum/struct.Router.html#method.with_state
+//! The [vite] module provides a convenient way to set up this state
+//! with [Router#with_state]. For instance, the following code sets up
+//! a standard development server:
 //!
 //! ```rust
 //! use axum_inertia::{vite, Inertia};
 //! use axum::{Router, routing::get, response::IntoResponse};
 //!
-//! # async fn get_posts(_i: Inertia) -> impl IntoResponse { "foo" }
-//! // Configuration for Inertia using `vite dev`:
-//! let inertia = vite::Development::new()
+//! // Configuration for Inertia when using `vite dev`:
+//! let inertia = vite::Development::default()
 //!     .port(5173)
 //!     .main("src/main.ts")
 //!     .lang("en")
-//!     .title("Tuvu")
-//!     .inertia();
+//!     .title("My inertia app")
+//!     .into_inertia();
 //! let app: Router = Router::new()
-//!     .route("/", get(get_posts))
+//!     .route("/", get(get_root))
 //!     .with_state(inertia);
+//!
+//! # async fn get_root(_i: Inertia) -> impl IntoResponse { "foo" }
 //! ```
+//!
+//! The [Inertia] struct is then available as an axum [Extractor] and
+//! can be used in handlers like so:
+//!
+//! ```rust
+//! use axum::response::IntoResponse;
+//! # use axum_inertia::Inertia;
+//! use serde_json::json;
+//!
+//! async fn get_root(i: Inertia) -> impl IntoResponse {
+//!     i.render("Pages/Home", json!({ "posts": vec!["post one", "post two"] }))
+//! }
+//! ```
+//!
+//! The [Inertia::render] method takes care of building a response
+//! conforming to the [inertia.js protocol]. It takes two parameters:
+//! the name of the component to render, and the page props
+//! (serializable to json).
+//!
+//! Using the extractor in a handler *requires* that you use
+//! [Router::with_state] to initialize Inertia in your routes. In
+//! fact, it won't compile if you don't!
+//!
+//! # Using Inertia as substate
+//!
+//! It's likely you'll want other pieces of state beyond
+//! [Inertia]. You'll just need to implement [axum::extract::FromRef]
+//! for your state type for [Inertia]. For instance:
+//!
+//! ```rust
+//! use axum_inertia::{vite, Inertia};
+//! use axum::{Router, routing::get, extract::FromRef};
+//! # use axum::response::IntoResponse;
+//!
+//! #[derive(Clone)]
+//! struct AppState {
+//!     inertia: Inertia,
+//!     name: String
+//! }
+//!
+//! impl FromRef<AppState> for Inertia {
+//!     fn from_ref(app_state: &AppState) -> Inertia {
+//!         app_state.inertia.clone()
+//!     }
+//! }
+//!
+//! let inertia = vite::Development::default()
+//!     .port(5173)
+//!     .main("src/main.ts")
+//!     .lang("en")
+//!     .title("My inertia app")
+//!     .into_inertia();
+//! let app_state = AppState { inertia, name: "foo".to_string() };
+//! let app: Router = Router::new()
+//!     .route("/", get(get_root))
+//!     .with_state(app_state);
+//!
+//! # async fn get_root(_i: Inertia) -> impl IntoResponse { "foo" }
+//! ```
+//!
+//! # Configuring development and production
+//!
+//! See the [vite] module for more information.
+//!
+//! [Router::with_state]: https://docs.rs/axum/latest/axum/struct.Router.html#method.with_state
+//! [asset version]: https://inertiajs.com/the-protocol#asset-versioning
+//! [inertia.js]: https://inertiajs.com
+//! [inertia.js protocol]: https://inertiajs.com/the-protocol
+//! [axum]: https://crates.io/crates/axum
+//! [Extractor]: https://docs.rs/axum/latest/axum/#extractors
 
 use async_trait::async_trait;
 use axum::extract::{FromRef, FromRequestParts};

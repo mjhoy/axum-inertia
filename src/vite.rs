@@ -1,6 +1,40 @@
+//! Convenience builders for Inertia using [vitejs].
+//!
+//! This module provides [Development] and [Production] structs for
+//! different environments, e.g.:
+//!
+//! ```rust
+//! use axum_inertia::vite;
+//!
+//! enum Env {
+//!   Dev,
+//!   Prod,
+//! }
+//!
+//! let env = match std::env::var("APP_ENV").map_or(false, |s| &s[..] == "production") {
+//!     true => Env::Prod,
+//!     false => Env::Dev
+//! };
+//!
+//! let inertia = match env {
+//!     Env::Dev => vite::Development::default()
+//!         .port(5173)
+//!         .main("src/main.ts")
+//!         .lang("en")
+//!         .title("My app")
+//!         .into_inertia(),
+//!     Env::Prod => vite::Production::new("client/dist/manifest.json", "src/main.ts")
+//!         .unwrap()
+//!         .lang("en")
+//!         .title("My app")
+//!         .into_inertia(),
+//! };
+//! ```
+//!
+//! [vitejs]: https://vitejs.dev
 use crate::Inertia;
 use hex::encode;
-use indoc::formatdoc;
+use maud::{html, PreEscaped};
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
 use std::collections::HashMap;
@@ -12,8 +46,8 @@ pub struct Development {
     title: &'static str,
 }
 
-impl Development {
-    pub fn new() -> Self {
+impl Default for Development {
+    fn default() -> Self {
         Development {
             port: 5173,
             main: "src/main.ts",
@@ -21,7 +55,9 @@ impl Development {
             title: "Vite",
         }
     }
+}
 
+impl Development {
     pub fn port(mut self, port: u16) -> Self {
         self.port = port;
         self
@@ -42,23 +78,25 @@ impl Development {
         self
     }
 
-    pub fn inertia(self) -> Inertia {
+    pub fn into_inertia(self) -> Inertia {
         let layout = Box::new(move |props| {
-            formatdoc! {r#"
-                <html lang={lang}>
-                <head>
-                    <title>{title}</title>
-                    <meta charset='utf-8' />
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                    <script type="module" src="http://localhost:{port}/@vite/client"></script>
-                    <script type="module" src="http://localhost:{port}/{main}"></script>
-                </head>
-                <body>
-                    <div id="app" data-page='{props}'></div>
-                </body>
-                </html>
-              "#, title = self.title, port = self.port, main = self.main, lang = self.lang
+            let vite_src = format!("http://localhost:{}/@vite/client", self.port);
+            let main_src = format!("http://localhost:{}/{}", self.port, self.main);
+            html! {
+                html lang=(self.lang) {
+                    head {
+                        title { (self.title) }
+                        meta charset="utf-8";
+                        meta name="viewport" content="width=device-width, initial-scale=1.0";
+                        script type="module" src=(vite_src) {}
+                        script type="module" src=(main_src) {}
+                    }
+                    body {
+                        div #app data-page=(props) {}
+                    }
+                }
             }
+            .into_string()
         });
         Inertia::new(None, layout)
     }
@@ -116,23 +154,24 @@ impl Production {
         self
     }
 
-    pub fn inertia(self) -> Inertia {
+    pub fn into_inertia(self) -> Inertia {
         let layout = Box::new(move |props| {
-            formatdoc! {r#"
-                <html lang={lang}>
-                <head>
-                    <title>{title}</title>
-                    <meta charset='utf-8' />
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                    <script type="module" src="{main}"></script>
-                    {css}
-                </head>
-                <body>
-                    <div id="app" data-page='{props}'></div>
-                </body>
-                </html>
-              "#, title = self.title, main = self.main, lang = self.lang, css = self.css.clone().unwrap_or("".to_string())
+            let css = self.css.clone().unwrap_or("".to_string());
+            html! {
+                html lang=(self.lang) {
+                    head {
+                        title { (self.title) }
+                        meta charset="utf-8";
+                        meta name="viewport" content="width=device-width, initial-scale=1.0";
+                        script type="module" src=(self.main) {}
+                        (PreEscaped(css))
+                    }
+                    body {
+                        div #app data-page=(props) {}
+                    }
+                }
             }
+            .into_string()
         });
         Inertia::new(Some(self.version), layout)
     }
