@@ -32,12 +32,7 @@
 //!
 //! # async fn get_posts(_i: Inertia) -> impl IntoResponse { "foo" }
 //! // Config for the client-side here:
-//! let vite = Vite {
-//!     port: 5173,
-//!     main: "src/main.ts",
-//!     lang: "en",
-//!     title: "Tuvu",
-//! };
+//! let vite = Vite::new_dev(5173, "src/main.ts", "en", "Tuvu");
 //!
 //! let inertia = Inertia::new(vite);
 //! let app: Router = Router::new()
