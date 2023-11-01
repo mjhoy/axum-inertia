@@ -27,14 +27,17 @@
 //! [Router#with_state]: https://docs.rs/axum/latest/axum/struct.Router.html#method.with_state
 //!
 //! ```rust
-//! use axum_inertia::{vite::Vite, Inertia};
+//! use axum_inertia::{vite, Inertia};
 //! use axum::{Router, routing::get, response::IntoResponse};
 //!
 //! # async fn get_posts(_i: Inertia) -> impl IntoResponse { "foo" }
-//! // Config for the client-side here:
-//! let vite = Vite::new_dev(5173, "src/main.ts", "en", "Tuvu");
-//!
-//! let inertia = Inertia::new(vite);
+//! // Configuration for Inertia using `vite dev`:
+//! let inertia = vite::Development::new()
+//!     .port(5173)
+//!     .main("src/main.ts")
+//!     .lang("en")
+//!     .title("Tuvu")
+//!     .inertia();
 //! let app: Router = Router::new()
 //!     .route("/", get(get_posts))
 //!     .with_state(inertia);
@@ -47,6 +50,7 @@ use page::Page;
 use request::Request;
 use response::Response;
 use serde::Serialize;
+use std::sync::Arc;
 
 mod page;
 mod request;
@@ -57,8 +61,9 @@ pub mod vite;
 pub struct Inertia {
     request: Option<Request>,
     version: Option<String>,
-    html_head: String,
-    html_lang: String,
+    /// A function from the serialized page props to the initial page
+    /// load html.
+    layout: Arc<Box<dyn Fn(String) -> String + Send + Sync>>,
 }
 
 #[async_trait]
@@ -73,6 +78,9 @@ where
         let mut inertia = Inertia::from_ref(state);
         let request = Request::from_request_parts(parts, state).await?;
 
+        // Respond with a 409 conflict if X-Inertia-Version values
+        // don't match for GET requests. See more at:
+        // https://inertiajs.com/the-protocol#asset-versioning
         if parts.method == "GET"
             && request.is_xhr
             && inertia.version.is_some()
@@ -92,13 +100,16 @@ impl Inertia {
     /// Constructs a new Inertia object.
     ///
     /// `layout` provides information about how to render the initial
-    /// page load. See more at [HtmlLayout].
-    pub fn new(config: impl AssetConfig) -> Inertia {
+    /// page load. See the [crate::vite] module for an implementation
+    /// of this for vite.
+    pub fn new(
+        version: Option<String>,
+        layout: Box<dyn Fn(String) -> String + Send + Sync>,
+    ) -> Inertia {
         Inertia {
             request: None,
-            html_head: config.html_head(),
-            html_lang: config.html_lang(),
-            version: config.version(),
+            version,
+            layout: Arc::new(layout),
         }
     }
 
@@ -115,25 +126,10 @@ impl Inertia {
         Response {
             page,
             request,
-            html_head: self.html_head,
-            html_lang: self.html_lang,
+            layout: self.layout,
             version: self.version,
         }
     }
-}
-
-/// A type that implements `AssetConfig` provides information needed for
-/// rendering the initial page load.
-///
-/// Currently, this just means giving up strings for the `lang`
-/// attribute for the base `html` element, and the content of the
-/// `head` element.
-///
-/// See the [vite::Vite] struct that implements this trait.
-pub trait AssetConfig {
-    fn version(&self) -> Option<String>;
-    fn html_lang(&self) -> String;
-    fn html_head(&self) -> String;
 }
 
 #[cfg(test)]
@@ -144,38 +140,16 @@ mod tests {
     use serde_json::json;
     use std::net::TcpListener;
 
-    struct DumbConfig {
-        version: Option<String>,
-        html_lang: String,
-        html_head: String,
-    }
-
-    impl AssetConfig for DumbConfig {
-        fn version(&self) -> Option<String> {
-            self.version.clone()
-        }
-
-        fn html_lang(&self) -> String {
-            self.html_lang.clone()
-        }
-        fn html_head(&self) -> String {
-            self.html_head.clone()
-        }
-    }
-
     #[tokio::test]
     async fn it_works() {
         async fn handler(i: Inertia) -> impl IntoResponse {
             i.render("foo!", json!({"bar": "baz"}))
         }
 
-        let layout = DumbConfig {
-            version: Some("123".to_string()),
-            html_lang: "en".to_string(),
-            html_head: "<title>Foo</title>".to_string(),
-        };
+        let layout =
+            Box::new(|props| format!(r#"<html><body><div id="app" data-page='{}'></div>"#, props));
 
-        let inertia = Inertia::new(layout);
+        let inertia = Inertia::new(Some("123".to_string()), layout);
 
         let app = Router::new()
             .route("/test", get(handler))
@@ -209,13 +183,10 @@ mod tests {
             i.render("foo!", json!({"bar": "baz"}))
         }
 
-        let layout = DumbConfig {
-            version: Some("123".to_string()),
-            html_lang: "en".to_string(),
-            html_head: "<title>Foo</title>".to_string(),
-        };
+        let layout =
+            Box::new(|props| format!(r#"<html><body><div id="app" data-page='{}'></div>"#, props));
 
-        let inertia = Inertia::new(layout);
+        let inertia = Inertia::new(Some("123".to_string()), layout);
 
         let app = Router::new()
             .route("/test", get(handler))

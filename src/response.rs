@@ -1,7 +1,7 @@
 use crate::{page::Page, request::Request};
 use axum::response::{Html, IntoResponse, Json};
 use http::HeaderMap;
-use indoc::formatdoc;
+use std::sync::Arc;
 
 /// An Inertia response.
 ///
@@ -10,26 +10,8 @@ use indoc::formatdoc;
 pub struct Response {
     pub(crate) request: Request,
     pub(crate) page: Page,
-    pub(crate) html_head: String,
-    pub(crate) html_lang: String,
+    pub(crate) layout: Arc<Box<dyn Fn(String) -> String + Send + Sync>>,
     pub(crate) version: Option<String>,
-}
-
-impl Response {
-    fn initial_html(&self) -> String {
-        formatdoc! {r#"
-            <!doctype html>
-            <html lang="{}">
-                <head>
-                    {}
-                </head>
-                <body>
-                    <div id="app" data-page='{}'></div>
-                </body>
-            </html>          
-        "#, self.html_lang, self.html_head, serde_json::to_string(&self.page).unwrap()
-        }
-    }
 }
 
 impl IntoResponse for Response {
@@ -42,7 +24,7 @@ impl IntoResponse for Response {
             headers.insert("X-Inertia", "true".parse().unwrap());
             (headers, Json(self.page)).into_response()
         } else {
-            let html = self.initial_html();
+            let html = (self.layout)(serde_json::to_string(&self.page).unwrap());
             (headers, Html(html)).into_response()
         }
     }
@@ -50,7 +32,7 @@ impl IntoResponse for Response {
 
 #[cfg(test)]
 mod tests {
-    use indoc::indoc;
+    use indoc::formatdoc;
 
     use super::*;
 
@@ -67,15 +49,24 @@ mod tests {
             version: None,
         };
 
-        let html_head = indoc! {r#"
-          <title>Foo!</title>
-        "#};
+        let layout = |props| {
+            formatdoc! {r#"
+            <html>
+            <head>
+            <title>Foo!</title>
+            </head>
+            <body>
+                <div id="app" data-page='{}'></div>
+            </body>
+            </html>
+        "#, props}
+            .to_string()
+        };
 
         let response = Response {
             request,
             page,
-            html_head: html_head.to_string(),
-            html_lang: "en".to_string(),
+            layout: Arc::new(Box::new(layout)),
             version: Some("123".to_string()),
         }
         .into_response();
