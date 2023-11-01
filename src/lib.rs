@@ -42,7 +42,7 @@
 
 use async_trait::async_trait;
 use axum::extract::{FromRef, FromRequestParts};
-use http::{request::Parts, StatusCode};
+use http::{request::Parts, HeaderMap, HeaderValue, StatusCode};
 use page::Page;
 use request::Request;
 use response::Response;
@@ -56,6 +56,7 @@ pub mod vite;
 #[derive(Clone)]
 pub struct Inertia {
     request: Option<Request>,
+    version: Option<String>,
     html_head: String,
     html_lang: String,
 }
@@ -66,11 +67,22 @@ where
     S: Send + Sync,
     Inertia: FromRef<S>,
 {
-    type Rejection = (StatusCode, &'static str);
+    type Rejection = (StatusCode, HeaderMap<HeaderValue>);
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let mut inertia = Inertia::from_ref(state);
         let request = Request::from_request_parts(parts, state).await?;
+
+        if parts.method == "GET"
+            && request.is_xhr
+            && inertia.version.is_some()
+            && request.version != inertia.version
+        {
+            let mut headers = HeaderMap::new();
+            headers.insert("X-Inertia-Location", parts.uri.path().parse().unwrap());
+            return Err((StatusCode::CONFLICT, headers));
+        }
+
         inertia.request = Some(request);
         Ok(inertia)
     }
@@ -81,11 +93,12 @@ impl Inertia {
     ///
     /// `layout` provides information about how to render the initial
     /// page load. See more at [HtmlLayout].
-    pub fn new(layout: impl HtmlLayout) -> Inertia {
+    pub fn new(config: impl AssetConfig) -> Inertia {
         Inertia {
             request: None,
-            html_head: layout.html_head(),
-            html_lang: layout.html_lang(),
+            html_head: config.html_head(),
+            html_lang: config.html_lang(),
+            version: config.version(),
         }
     }
 
@@ -97,18 +110,19 @@ impl Inertia {
             component,
             props: serde_json::to_value(props).expect("serialize"),
             url,
-            version: request.version.clone(),
+            version: self.version.clone(),
         };
         Response {
             page,
             request,
             html_head: self.html_head,
             html_lang: self.html_lang,
+            version: self.version,
         }
     }
 }
 
-/// A type the implements `HtmlLayout` provides information needed for
+/// A type that implements `AssetConfig` provides information needed for
 /// rendering the initial page load.
 ///
 /// Currently, this just means giving up strings for the `lang`
@@ -116,7 +130,8 @@ impl Inertia {
 /// `head` element.
 ///
 /// See the [vite::Vite] struct that implements this trait.
-pub trait HtmlLayout {
+pub trait AssetConfig {
+    fn version(&self) -> Option<String>;
     fn html_lang(&self) -> String;
     fn html_head(&self) -> String;
 }
@@ -124,16 +139,22 @@ pub trait HtmlLayout {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::{self, routing::get, Router, Server};
+    use axum::{self, response::IntoResponse, routing::get, Router, Server};
     use reqwest::StatusCode;
+    use serde_json::json;
     use std::net::TcpListener;
 
-    struct DumbHtmlLayout {
+    struct DumbConfig {
+        version: Option<String>,
         html_lang: String,
         html_head: String,
     }
 
-    impl HtmlLayout for DumbHtmlLayout {
+    impl AssetConfig for DumbConfig {
+        fn version(&self) -> Option<String> {
+            self.version.clone()
+        }
+
         fn html_lang(&self) -> String {
             self.html_lang.clone()
         }
@@ -144,9 +165,12 @@ mod tests {
 
     #[tokio::test]
     async fn it_works() {
-        async fn handler(_: Inertia) {}
+        async fn handler(i: Inertia) -> impl IntoResponse {
+            i.render("foo!", json!({"bar": "baz"}))
+        }
 
-        let layout = DumbHtmlLayout {
+        let layout = DumbConfig {
+            version: Some("123".to_string()),
             html_lang: "en".to_string(),
             html_head: "<title>Foo</title>".to_string(),
         };
@@ -171,5 +195,58 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
+        assert_eq!(
+            res.headers()
+                .get("X-Inertia-Version")
+                .map(|h| h.to_str().unwrap()),
+            Some("123")
+        );
+    }
+
+    #[tokio::test]
+    async fn it_responds_with_conflict_on_version_mismatch() {
+        async fn handler(i: Inertia) -> impl IntoResponse {
+            i.render("foo!", json!({"bar": "baz"}))
+        }
+
+        let layout = DumbConfig {
+            version: Some("123".to_string()),
+            html_lang: "en".to_string(),
+            html_head: "<title>Foo</title>".to_string(),
+        };
+
+        let inertia = Inertia::new(layout);
+
+        let app = Router::new()
+            .route("/test", get(handler))
+            .with_state(inertia);
+
+        let listener = TcpListener::bind("127.0.0.1:0").expect("Could not bind ephemeral socket");
+        let addr = listener.local_addr().unwrap();
+
+        tokio::spawn(async move {
+            let server = Server::from_tcp(listener)
+                .unwrap()
+                .serve(app.into_make_service());
+            server.await.expect("server error");
+        });
+
+        let client = reqwest::Client::new();
+
+        let res = client
+            .get(format!("http://{}/test", &addr))
+            .header("X-Inertia", "true")
+            .header("X-Inertia-Version", "456")
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(res.status(), StatusCode::CONFLICT);
+        assert_eq!(
+            res.headers()
+                .get("X-Inertia-Location")
+                .map(|h| h.to_str().unwrap()),
+            Some("/test")
+        );
     }
 }

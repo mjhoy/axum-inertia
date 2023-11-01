@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use axum::extract::FromRequestParts;
-use http::{request::Parts, StatusCode};
+use http::{request::Parts, HeaderMap, HeaderValue, StatusCode};
 
 /// Inertia-related information in the request.
 ///
@@ -28,7 +28,7 @@ impl<S> FromRequestParts<S> for Request
 where
     S: Send + Sync,
 {
-    type Rejection = (StatusCode, &'static str);
+    type Rejection = (StatusCode, HeaderMap<HeaderValue>);
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         let url = parts.uri.path().to_string();
@@ -37,14 +37,14 @@ where
             .get("X-Inertia")
             .map(|s| s.to_str().map(|s| s == "true"))
             .transpose()
-            .map_err(|_err| (StatusCode::BAD_REQUEST, "X-Inertia header error"))?
+            .map_err(|_err| (StatusCode::BAD_REQUEST, HeaderMap::new()))?
             .unwrap_or(false);
         let version = parts
             .headers
             .get("X-Inertia-Version")
             .map(|s| s.to_str().map(|s| s.to_string()))
             .transpose()
-            .map_err(|_err| (StatusCode::BAD_REQUEST, "X-Inertia-Version header error"))?;
+            .map_err(|_err| (StatusCode::BAD_REQUEST, HeaderMap::new()))?;
         Ok(Request {
             is_xhr,
             version,

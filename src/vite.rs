@@ -1,7 +1,9 @@
-use crate::HtmlLayout;
+use crate::AssetConfig;
+use hex::encode;
 use indoc::formatdoc;
 use serde::Deserialize;
-use std::{collections::HashMap, fs::File};
+use sha1::{Digest, Sha1};
+use std::collections::HashMap;
 
 /// Struct representing a Vite configuration.
 ///
@@ -45,6 +47,8 @@ pub enum Vite {
         css: Option<String>,
         title: &'static str,
         lang: &'static str,
+        /// SHA1 hash of the contents of the manifest file.
+        version: String,
     },
 }
 
@@ -66,9 +70,14 @@ impl Vite {
         lang: &'static str,
         title: &'static str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let file = File::open(manifest_path)?;
-        let manifest: HashMap<String, ManifestEntry> = serde_json::from_reader(&file)?;
+        let bytes = std::fs::read(manifest_path)?;
+        let manifest: HashMap<String, ManifestEntry> =
+            serde_json::from_str(&String::from_utf8(bytes.clone())?)?;
         let entry = manifest.get(main).ok_or(ViteError::EntryMissing(main))?;
+        let mut hasher = Sha1::new();
+        hasher.update(&bytes);
+        let result = hasher.finalize();
+        let version = encode(result);
         let css = {
             if let Some(css_sources) = &entry.css {
                 let mut css = String::new();
@@ -85,6 +94,7 @@ impl Vite {
             css,
             title,
             lang,
+            version,
         })
     }
 }
@@ -119,7 +129,20 @@ struct ManifestEntry {
     css: Option<Vec<String>>,
 }
 
-impl HtmlLayout for Vite {
+impl AssetConfig for Vite {
+    fn version(&self) -> Option<String> {
+        match self {
+            Self::Development { .. } => None,
+            Self::Production {
+                main: _,
+                css: _,
+                title: _,
+                lang: _,
+                version,
+            } => Some(version.clone()),
+        }
+    }
+
     fn html_lang(&self) -> String {
         match self {
             Self::Development {
@@ -133,6 +156,7 @@ impl HtmlLayout for Vite {
                 css: _,
                 title: _,
                 lang,
+                version: _,
             } => lang.to_string(),
         }
     }
@@ -159,6 +183,7 @@ impl HtmlLayout for Vite {
                 css,
                 title,
                 lang: _,
+                version: _,
             } => {
                 let blank = "".to_string();
                 let css = css.as_ref().unwrap_or(&blank);

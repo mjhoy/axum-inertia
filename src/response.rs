@@ -1,5 +1,6 @@
 use crate::{page::Page, request::Request};
 use axum::response::{Html, IntoResponse, Json};
+use http::HeaderMap;
 use indoc::formatdoc;
 
 /// An Inertia response.
@@ -11,6 +12,7 @@ pub struct Response {
     pub(crate) page: Page,
     pub(crate) html_head: String,
     pub(crate) html_lang: String,
+    pub(crate) version: Option<String>,
 }
 
 impl Response {
@@ -32,11 +34,16 @@ impl Response {
 
 impl IntoResponse for Response {
     fn into_response(self) -> axum::response::Response {
+        let mut headers = HeaderMap::new();
+        if let Some(version) = &self.version {
+            headers.insert("X-Inertia-Version", version.parse().unwrap());
+        }
         if self.request.is_xhr {
-            ([("X-Inertia", "true")], Json(self.page)).into_response()
+            headers.insert("X-Inertia", "true".parse().unwrap());
+            (headers, Json(self.page)).into_response()
         } else {
             let html = self.initial_html();
-            Html(html).into_response()
+            (headers, Html(html)).into_response()
         }
     }
 }
@@ -69,6 +76,7 @@ mod tests {
             page,
             html_head: html_head.to_string(),
             html_lang: "en".to_string(),
+            version: Some("123".to_string()),
         }
         .into_response();
         let body = hyper::body::to_bytes(response.into_body())
