@@ -11,6 +11,7 @@ async fn get_posts(i: Inertia) -> impl IntoResponse {
 }
 ```
 
-See crate documentation for more information.
+See [crate documentation] for more information.
 
 [inertia.js]: https://inertiajs.com
+[crate documentation]: https://docs.rs/axum-inertia/latest/axum_inertia/
