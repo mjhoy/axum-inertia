@@ -1,3 +1,6 @@
+[![Crates.io](https://img.shields.io/crates/v/axum-inertia.svg)](https://crates.io/crates/axum-inertia)
+[![Documentation](https://docs.rs/axum-inertia/badge.svg)](https://docs.rs/axum-inertia/)
+
 axum-inertia
 ============
 
