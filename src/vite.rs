@@ -6,28 +6,22 @@
 //! ```rust
 //! use axum_inertia::vite;
 //!
-//! enum Env {
-//!   Dev,
-//!   Prod,
-//! }
+//! // are we production?
+//! let is_production = std::env::var("APP_ENV").map_or(false, |s| &s[..] == "production");
 //!
-//! let env = match std::env::var("APP_ENV").map_or(false, |s| &s[..] == "production") {
-//!     true => Env::Prod,
-//!     false => Env::Dev
-//! };
-//!
-//! let inertia = match env {
-//!     Env::Dev => vite::Development::default()
+//! let inertia = if is_production {
+//!     vite::Production::new("client/dist/manifest.json", "src/main.ts")
+//!         .unwrap()
+//!         .lang("en")
+//!         .title("My app")
+//!         .into_inertia()
+//! } else {
+//!     vite::Development::default()
 //!         .port(5173)
 //!         .main("src/main.ts")
 //!         .lang("en")
 //!         .title("My app")
-//!         .into_inertia(),
-//!     Env::Prod => vite::Production::new("client/dist/manifest.json", "src/main.ts")
-//!         .unwrap()
-//!         .lang("en")
-//!         .title("My app")
-//!         .into_inertia(),
+//!         .into_inertia()
 //! };
 //! ```
 //!
