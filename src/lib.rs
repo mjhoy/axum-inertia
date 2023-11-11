@@ -1,5 +1,36 @@
 //! An implementation of the [inertia.js] protocol for [axum].
 //!
+//! The basic idea is that any axum handler that accepts the `Inertia`
+//! struct as a function parameter is an inertia endpoint. For
+//! instance:
+//!
+//! ```rust
+//! use axum_inertia::Inertia;
+//! use axum::{Json, response::IntoResponse};
+//! use serde_json::json;
+//!
+//! async fn my_handler_fn(i: Inertia) -> impl IntoResponse {
+//!     i.render("Pages/MyPageComponent", json!({"myPageProps": "true"}))
+//! }
+//! ```
+//!
+//! This does the following:
+//!
+//! - If the incoming request is the initial page load (i.e., does not
+//! have the `X-Inertia` header set to `true`), the
+//! [render](Inertia::render) method responds with an html page, which
+//! is configurable when setting up the initial Inertia state (see
+//! [Getting started](#getting-started) below).
+//!
+//! - Otherwise, the handler responses with the standard inertia
+//! "Page" object json, with the included component and page props
+//! passed to [render](Inertia::render).
+//!
+//! - If the request has a mismatching asset version (again, this is
+//! configurable), the handler responds with a `409 Conflict` to tell
+//! the client to reload the page. The function body of the handler is
+//! not executed in this case.
+//!
 //! # Getting started
 //!
 //! First, you'll need to provide your axum routes with [Inertia]
@@ -9,8 +40,8 @@
 //! load.
 //!
 //! The [vite] module provides a convenient way to set up this state
-//! with [Router#with_state]. For instance, the following code sets up
-//! a standard development server:
+//! with [axum::Router::with_state]. For instance, the following code
+//! sets up a standard development server:
 //!
 //! ```rust
 //! use axum_inertia::{vite, Inertia};
@@ -49,8 +80,8 @@
 //! (serializable to json).
 //!
 //! Using the extractor in a handler *requires* that you use
-//! [Router::with_state] to initialize Inertia in your routes. In
-//! fact, it won't compile if you don't!
+//! [axum::Router::with_state] to initialize Inertia in your
+//! routes. In fact, it won't compile if you don't!
 //!
 //! # Using Inertia as substate
 //!
