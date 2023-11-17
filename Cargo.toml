@@ -12,7 +12,7 @@ keywords = ["axum", "inertia"]
 axum = "0.6.20"
 async-trait = "0.1.74"
 http = "0.2.9"
-hyper = "0.14.27"
+hyper = "1.0.1"
 serde = { version = "1.0.189", features = ["derive"] }
 serde_json = "1.0.107"
 indoc = "2.0.4"
