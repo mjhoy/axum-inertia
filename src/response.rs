@@ -32,6 +32,7 @@ impl IntoResponse for Response {
 
 #[cfg(test)]
 mod tests {
+    use http_body_util::BodyExt;
     use indoc::formatdoc;
 
     use super::*;
@@ -70,9 +71,7 @@ mod tests {
             version: Some("123".to_string()),
         }
         .into_response();
-        let body = hyper::body::to_bytes(response.into_body())
-            .await
-            .expect("got bytes");
+        let body = response.into_body().collect().await.unwrap().to_bytes();
         let body = String::from_utf8(body.into()).expect("decoded string");
 
         assert!(body.contains(r#""props":{"test":"test"}"#));

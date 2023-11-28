@@ -223,10 +223,10 @@ impl Inertia {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::{self, response::IntoResponse, routing::get, Router, Server};
+    use axum::{self, response::IntoResponse, routing::get, Router};
     use reqwest::StatusCode;
     use serde_json::json;
-    use std::net::TcpListener;
+    use tokio::net::TcpListener;
 
     #[tokio::test]
     async fn it_works() {
@@ -243,14 +243,13 @@ mod tests {
             .route("/test", get(handler))
             .with_state(inertia);
 
-        let listener = TcpListener::bind("127.0.0.1:0").expect("Could not bind ephemeral socket");
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("Could not bind ephemeral socket");
         let addr = listener.local_addr().unwrap();
 
         tokio::spawn(async move {
-            let server = Server::from_tcp(listener)
-                .unwrap()
-                .serve(app.into_make_service());
-            server.await.expect("server error");
+            axum::serve(listener, app).await.expect("server error");
         });
 
         let res = reqwest::get(format!("http://{}/test", &addr))
@@ -280,14 +279,13 @@ mod tests {
             .route("/test", get(handler))
             .with_state(inertia);
 
-        let listener = TcpListener::bind("127.0.0.1:0").expect("Could not bind ephemeral socket");
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("Could not bind ephemeral socket");
         let addr = listener.local_addr().unwrap();
 
         tokio::spawn(async move {
-            let server = Server::from_tcp(listener)
-                .unwrap()
-                .serve(app.into_make_service());
-            server.await.expect("server error");
+            axum::serve(listener, app).await.expect("server error");
         });
 
         let client = reqwest::Client::new();

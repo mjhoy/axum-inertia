@@ -56,9 +56,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::{self, routing::get, Router, Server};
+    use axum::{self, routing::get, Router};
     use reqwest::StatusCode;
-    use std::net::TcpListener;
+    use tokio::net::TcpListener;
 
     #[tokio::test]
     async fn it_extracts_inertia_request_info() {
@@ -79,14 +79,13 @@ mod tests {
             .route("/expect_not_inertia", get(handler_expect_not_inertia))
             .route("/expect_no_version", get(handler_expect_no_version));
 
-        let listener = TcpListener::bind("127.0.0.1:0").expect("Could not bind ephemeral socket");
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("Could not bind ephemeral socket");
         let addr = listener.local_addr().unwrap();
 
         tokio::spawn(async move {
-            let server = Server::from_tcp(listener)
-                .unwrap()
-                .serve(app.into_make_service());
-            server.await.expect("server error");
+            axum::serve(listener, app).await.expect("server error");
         });
 
         let client = reqwest::Client::new();
