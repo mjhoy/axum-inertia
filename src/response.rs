@@ -1,7 +1,7 @@
+use crate::config::InertiaConfig;
 use crate::{page::Page, request::Request};
 use axum::response::{Html, IntoResponse, Json};
 use http::HeaderMap;
-use std::sync::Arc;
 
 /// An Inertia response.
 ///
@@ -10,21 +10,20 @@ use std::sync::Arc;
 pub struct Response {
     pub(crate) request: Request,
     pub(crate) page: Page,
-    pub(crate) layout: Arc<Box<dyn Fn(String) -> String + Send + Sync>>,
-    pub(crate) version: Option<String>,
+    pub(crate) config: InertiaConfig,
 }
 
 impl IntoResponse for Response {
     fn into_response(self) -> axum::response::Response {
         let mut headers = HeaderMap::new();
-        if let Some(version) = &self.version {
+        if let Some(version) = &self.config.version() {
             headers.insert("X-Inertia-Version", version.parse().unwrap());
         }
         if self.request.is_xhr {
             headers.insert("X-Inertia", "true".parse().unwrap());
             (headers, Json(self.page)).into_response()
         } else {
-            let html = (self.layout)(serde_json::to_string(&self.page).unwrap());
+            let html = (self.config.layout())(serde_json::to_string(&self.page).unwrap());
             (headers, Html(html)).into_response()
         }
     }
@@ -64,11 +63,12 @@ mod tests {
             .to_string()
         };
 
+        let config = InertiaConfig::new(Some("123".to_string()), Box::new(layout));
+
         let response = Response {
             request,
             page,
-            layout: Arc::new(Box::new(layout)),
-            version: Some("123".to_string()),
+            config,
         }
         .into_response();
         let body = response.into_body().collect().await.unwrap().to_bytes();

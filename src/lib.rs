@@ -33,11 +33,11 @@
 //!
 //! # Getting started
 //!
-//! First, you'll need to provide your axum routes with [Inertia]
-//! state. This state boils down to two things: an optional string
-//! representing the [asset version] and a function that takes
-//! serialized props and returns an HTML string for the initial page
-//! load.
+//! First, you'll need to provide your axum routes with
+//! [InertiaConfig] state. This state boils down to two things: an
+//! optional string representing the [asset version] and a function
+//! that takes serialized props and returns an HTML string for the
+//! initial page load.
 //!
 //! The [vite] module provides a convenient way to set up this state
 //! with [axum::Router::with_state]. For instance, the following code
@@ -53,7 +53,7 @@
 //!     .main("src/main.ts")
 //!     .lang("en")
 //!     .title("My inertia app")
-//!     .into_inertia();
+//!     .into_config();
 //! let app: Router = Router::new()
 //!     .route("/", get(get_root))
 //!     .with_state(inertia);
@@ -83,25 +83,26 @@
 //! [axum::Router::with_state] to initialize Inertia in your
 //! routes. In fact, it won't compile if you don't!
 //!
-//! # Using Inertia as substate
+//! # Using InertiaConfig as substate
 //!
 //! It's likely you'll want other pieces of state beyond
-//! [Inertia]. You'll just need to implement [axum::extract::FromRef]
-//! for your state type for [Inertia]. For instance:
+//! [InertiaConfig]. You'll just need to implement
+//! [axum::extract::FromRef] for your state type for
+//! [InertiaConfig]. For instance:
 //!
 //! ```rust
-//! use axum_inertia::{vite, Inertia};
+//! use axum_inertia::{vite, Inertia, InertiaConfig};
 //! use axum::{Router, routing::get, extract::FromRef};
 //! # use axum::response::IntoResponse;
 //!
 //! #[derive(Clone)]
 //! struct AppState {
-//!     inertia: Inertia,
+//!     inertia: InertiaConfig,
 //!     name: String
 //! }
 //!
-//! impl FromRef<AppState> for Inertia {
-//!     fn from_ref(app_state: &AppState) -> Inertia {
+//! impl FromRef<AppState> for InertiaConfig {
+//!     fn from_ref(app_state: &AppState) -> InertiaConfig {
 //!         app_state.inertia.clone()
 //!     }
 //! }
@@ -111,7 +112,7 @@
 //!     .main("src/main.ts")
 //!     .lang("en")
 //!     .title("My inertia app")
-//!     .into_inertia();
+//!     .into_config();
 //! let app_state = AppState { inertia, name: "foo".to_string() };
 //! let app: Router = Router::new()
 //!     .route("/", get(get_root))
@@ -133,13 +134,14 @@
 
 use async_trait::async_trait;
 use axum::extract::{FromRef, FromRequestParts};
+pub use config::InertiaConfig;
 use http::{request::Parts, HeaderMap, HeaderValue, StatusCode};
 use page::Page;
 use request::Request;
 use response::Response;
 use serde::Serialize;
-use std::sync::Arc;
 
+pub mod config;
 mod page;
 mod request;
 mod response;
@@ -147,23 +149,20 @@ pub mod vite;
 
 #[derive(Clone)]
 pub struct Inertia {
-    request: Option<Request>,
-    version: Option<String>,
-    /// A function from the serialized page props to the initial page
-    /// load html.
-    layout: Arc<Box<dyn Fn(String) -> String + Send + Sync>>,
+    request: Request,
+    config: InertiaConfig,
 }
 
 #[async_trait]
 impl<S> FromRequestParts<S> for Inertia
 where
     S: Send + Sync,
-    Inertia: FromRef<S>,
+    InertiaConfig: FromRef<S>,
 {
     type Rejection = (StatusCode, HeaderMap<HeaderValue>);
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let mut inertia = Inertia::from_ref(state);
+        let config = InertiaConfig::from_ref(state);
         let request = Request::from_request_parts(parts, state).await?;
 
         // Respond with a 409 conflict if X-Inertia-Version values
@@ -171,51 +170,37 @@ where
         // https://inertiajs.com/the-protocol#asset-versioning
         if parts.method == "GET"
             && request.is_xhr
-            && inertia.version.is_some()
-            && request.version != inertia.version
+            && config.version().is_some()
+            && request.version != config.version()
         {
             let mut headers = HeaderMap::new();
             headers.insert("X-Inertia-Location", parts.uri.path().parse().unwrap());
             return Err((StatusCode::CONFLICT, headers));
         }
 
-        inertia.request = Some(request);
-        Ok(inertia)
+        Ok(Inertia::new(request, config))
     }
 }
 
 impl Inertia {
-    /// Constructs a new Inertia object.
-    ///
-    /// `layout` provides information about how to render the initial
-    /// page load. See the [crate::vite] module for an implementation
-    /// of this for vite.
-    pub fn new(
-        version: Option<String>,
-        layout: Box<dyn Fn(String) -> String + Send + Sync>,
-    ) -> Inertia {
-        Inertia {
-            request: None,
-            version,
-            layout: Arc::new(layout),
-        }
+    fn new(request: Request, config: InertiaConfig) -> Inertia {
+        Inertia { request, config }
     }
 
     /// Renders an Inertia response.
     pub fn render<S: Serialize>(self, component: &'static str, props: S) -> Response {
-        let request = self.request.expect("no request set");
+        let request = self.request;
         let url = request.url.clone();
         let page = Page {
             component,
             props: serde_json::to_value(props).expect("serialize"),
             url,
-            version: self.version.clone(),
+            version: self.config.version().clone(),
         };
         Response {
             page,
             request,
-            layout: self.layout,
-            version: self.version,
+            config: self.config,
         }
     }
 }
@@ -237,11 +222,11 @@ mod tests {
         let layout =
             Box::new(|props| format!(r#"<html><body><div id="app" data-page='{}'></div>"#, props));
 
-        let inertia = Inertia::new(Some("123".to_string()), layout);
+        let config = InertiaConfig::new(Some("123".to_string()), layout);
 
         let app = Router::new()
             .route("/test", get(handler))
-            .with_state(inertia);
+            .with_state(config);
 
         let listener = TcpListener::bind("127.0.0.1:0")
             .await
@@ -273,7 +258,7 @@ mod tests {
         let layout =
             Box::new(|props| format!(r#"<html><body><div id="app" data-page='{}'></div>"#, props));
 
-        let inertia = Inertia::new(Some("123".to_string()), layout);
+        let inertia = InertiaConfig::new(Some("123".to_string()), layout);
 
         let app = Router::new()
             .route("/test", get(handler))

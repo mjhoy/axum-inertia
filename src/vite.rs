@@ -14,19 +14,19 @@
 //!         .unwrap()
 //!         .lang("en")
 //!         .title("My app")
-//!         .into_inertia()
+//!         .into_config()
 //! } else {
 //!     vite::Development::default()
 //!         .port(5173)
 //!         .main("src/main.ts")
 //!         .lang("en")
 //!         .title("My app")
-//!         .into_inertia()
+//!         .into_config()
 //! };
 //! ```
 //!
 //! [vitejs]: https://vitejs.dev
-use crate::Inertia;
+use crate::config::InertiaConfig;
 use hex::encode;
 use maud::{html, PreEscaped};
 use serde::Deserialize;
@@ -72,7 +72,7 @@ impl Development {
         self
     }
 
-    pub fn into_inertia(self) -> Inertia {
+    pub fn into_config(self) -> InertiaConfig {
         let layout = Box::new(move |props| {
             let vite_src = format!("http://localhost:{}/@vite/client", self.port);
             let main_src = format!("http://localhost:{}/{}", self.port, self.main);
@@ -85,6 +85,7 @@ impl Development {
                         script type="module" src=(vite_src) {}
                         script type="module" src=(main_src) {}
                     }
+
                     body {
                         div #app data-page=(props) {}
                     }
@@ -92,7 +93,7 @@ impl Development {
             }
             .into_string()
         });
-        Inertia::new(None, layout)
+        InertiaConfig::new(None, layout)
     }
 }
 
@@ -148,7 +149,7 @@ impl Production {
         self
     }
 
-    pub fn into_inertia(self) -> Inertia {
+    pub fn into_config(self) -> InertiaConfig {
         let layout = Box::new(move |props| {
             let css = self.css.clone().unwrap_or("".to_string());
             html! {
@@ -167,7 +168,7 @@ impl Production {
             }
             .into_string()
         });
-        Inertia::new(Some(self.version), layout)
+        InertiaConfig::new(Some(self.version), layout)
     }
 }
 
