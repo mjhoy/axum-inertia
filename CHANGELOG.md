@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.3.0] 2024-02-12
+
+- Split configuration to a new `InertiaConfig` struct
+
 ## [0.2.0] 2023-11-27
 
 - Update to axum 0.7.
