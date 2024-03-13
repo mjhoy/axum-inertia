@@ -53,7 +53,7 @@ where
             .get("X-Inertia-Partial-Data")
             .map(|s| s.to_str().map(|s| s.to_string()))
             .transpose()
-            .map(|s| s.map(|s| s.split(",").map(|s| s.to_owned()).collect::<Vec<_>>()))
+            .map(|s| s.map(|s| s.split(',').map(|s| s.to_owned()).collect::<Vec<_>>()))
             .map_err(|_err| (StatusCode::BAD_REQUEST, HeaderMap::new()))?;
         let partial_component = parts
             .headers
