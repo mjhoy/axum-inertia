@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- A new `Props` trait is added for use with `Inertia::render`. Objects
+  that implement `Props` know how to serialize themselves to json and
+  are passed information about "partial" Inertia reloads to exclude
+  certain fields. This trait can hopefully eventually be used to
+  implement a derive macro for prop types that support things like
+  lazily evaluated props.
+
 ## [0.3.0] 2024-02-12
 
 - Split configuration to a new `InertiaConfig` struct

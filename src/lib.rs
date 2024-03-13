@@ -137,12 +137,14 @@ use axum::extract::{FromRef, FromRequestParts};
 pub use config::InertiaConfig;
 use http::{request::Parts, HeaderMap, HeaderValue, StatusCode};
 use page::Page;
+use props::Props;
 use request::Request;
 use response::Response;
-use serde::Serialize;
 
 pub mod config;
 mod page;
+pub mod partial;
+pub mod props;
 mod request;
 mod response;
 pub mod vite;
@@ -188,12 +190,15 @@ impl Inertia {
     }
 
     /// Renders an Inertia response.
-    pub fn render<S: Serialize>(self, component: &'static str, props: S) -> Response {
+    pub fn render<S: Props>(self, component: &'static str, props: S) -> Response {
         let request = self.request;
         let url = request.url.clone();
         let page = Page {
             component,
-            props: serde_json::to_value(props).expect("serialize"),
+            props: props
+                .serialize(request.partial.as_ref())
+                // TODO: error handling
+                .expect("serialization failure"),
             url,
             version: self.config.version().clone(),
         };
