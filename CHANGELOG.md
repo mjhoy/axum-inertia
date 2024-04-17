@@ -11,6 +11,11 @@
   implement a derive macro for prop types that support things like
   lazily evaluated props.
 
+### Fixed
+
+- Now uses the original request url in the props response. This fixes
+  nested routers.
+
 ## [0.3.0] 2024-02-12
 
 - Split configuration to a new `InertiaConfig` struct
