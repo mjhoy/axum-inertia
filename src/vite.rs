@@ -21,6 +21,7 @@
 //!         .main("src/main.ts")
 //!         .lang("en")
 //!         .title("My app")
+//!         .react() // call if using react
 //!         .into_config()
 //! };
 //! ```
@@ -38,6 +39,7 @@ pub struct Development {
     main: &'static str,
     lang: &'static str,
     title: &'static str,
+    react: bool,
 }
 
 impl Default for Development {
@@ -47,6 +49,7 @@ impl Default for Development {
             main: "src/main.ts",
             lang: "en",
             title: "Vite",
+            react: false,
         }
     }
 }
@@ -72,16 +75,33 @@ impl Development {
         self
     }
 
+    /// Sets up vite for react usage.
+    ///
+    /// Currently, this will include preamble code for using react-refresh in the html head.
+    /// Some context here: https://github.com/vitejs/vite/issues/1984
+    pub fn react(mut self) -> Self {
+        self.react = true;
+        self
+    }
+
     pub fn into_config(self) -> InertiaConfig {
         let layout = Box::new(move |props| {
             let vite_src = format!("http://localhost:{}/@vite/client", self.port);
             let main_src = format!("http://localhost:{}/{}", self.port, self.main);
+            let preamble_code = if self.react {
+                Some(PreEscaped(self.build_react_preamble()))
+            } else {
+                None
+            };
             html! {
                 html lang=(self.lang) {
                     head {
                         title { (self.title) }
                         meta charset="utf-8";
                         meta name="viewport" content="width=device-width, initial-scale=1.0";
+                        @if let Some(preamble_code) = preamble_code {
+                            script type="module" { (preamble_code) }
+                        }
                         script type="module" src=(vite_src) {}
                         script type="module" src=(main_src) {}
                     }
@@ -94,6 +114,19 @@ impl Development {
             .into_string()
         });
         InertiaConfig::new(None, layout)
+    }
+
+    fn build_react_preamble(&self) -> String {
+        format!(
+            r#"
+import RefreshRuntime from "http://localhost:{}/@react-refresh"
+RefreshRuntime.injectIntoGlobalHook(window)
+window.$RefreshReg$ = () => {{}}
+window.$RefreshSig$ = () => (type) => type
+window.__vite_plugin_react_preamble_installed__ = true
+"#,
+            self.port
+        )
     }
 }
 

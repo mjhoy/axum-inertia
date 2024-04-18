@@ -4,6 +4,7 @@
 
 ### Added
 
+- Now supports vite development with React.
 - A new `Props` trait is added for use with `Inertia::render`. Objects
   that implement `Props` know how to serialize themselves to json and
   are passed information about "partial" Inertia reloads to exclude
