@@ -18,3 +18,11 @@ See [crate documentation] for more information.
 
 [inertia.js]: https://inertiajs.com
 [crate documentation]: https://docs.rs/axum-inertia/latest/axum_inertia/
+
+## Making a new release
+
+1. Spin off a `bump-vX.X.X` branch
+2. Update the `CHANGELOG`; start a new `[Unreleased]` section
+3. Bump the version number in `Cargo.toml`
+4. Run `cargo release --execute`
+5. Merge PR if all goes well
