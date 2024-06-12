@@ -9,7 +9,7 @@ repository = "https://github.com/mjhoy/axum-inertia"
 keywords = ["axum", "inertia"]
 
 [dependencies]
-axum = "0.7.1"
+axum = "0.7.5"
 async-trait = "0.1.74"
 http = "1.0.0"
 hyper = "1.0.1"
