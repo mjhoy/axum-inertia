@@ -10,6 +10,8 @@ updates:
       interval: daily
     ignore:
       - dependency-name: "*"
+        # patch and minor updates don't matter for libraries; consumers will build
+        # with their own lockfile. we just want major updates.
         update-types:
           - "version-update:semver-patch"
           - "version-update:semver-minor"
