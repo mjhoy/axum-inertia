@@ -131,7 +131,7 @@ window.__vite_plugin_react_preamble_installed__ = true
 }
 
 pub struct Production {
-    main: String,
+    main: ManifestEntry,
     css: Option<String>,
     title: &'static str,
     lang: &'static str,
@@ -164,7 +164,7 @@ impl Production {
             }
         };
         Ok(Self {
-            main: format!("/{}", entry.file),
+            main: entry.clone(),
             css,
             title: "Vite",
             lang: "en",
@@ -185,13 +185,15 @@ impl Production {
     pub fn into_config(self) -> InertiaConfig {
         let layout = Box::new(move |props| {
             let css = self.css.clone().unwrap_or("".to_string());
+            let main_path = format!("/{}", self.main.file);
+            let main_integrity = self.main.integrity.clone().unwrap_or("".to_string());
             html! {
                 html lang=(self.lang) {
                     head {
                         title { (self.title) }
                         meta charset="utf-8";
                         meta name="viewport" content="width=device-width, initial-scale=1.0";
-                        script type="module" src=(self.main) {}
+                        script type="module" src=(main_path) integrity=(main_integrity) {}
                         (PreEscaped(css))
                     }
                     body {
@@ -229,8 +231,9 @@ impl std::error::Error for ViteError {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 struct ManifestEntry {
     file: String,
+    integrity: Option<String>,
     css: Option<Vec<String>>,
 }
