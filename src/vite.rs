@@ -144,7 +144,11 @@ impl Production {
         manifest_path: &'static str,
         main: &'static str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let bytes = std::fs::read(manifest_path)?;
+        let bytes = if cfg!(test) {
+            manifest_path.as_bytes().to_vec()
+        } else {
+            std::fs::read(manifest_path)?
+        };
         let manifest: HashMap<String, ManifestEntry> =
             serde_json::from_str(&String::from_utf8(bytes.clone())?)?;
         let entry = manifest.get(main).ok_or(ViteError::EntryMissing(main))?;
@@ -236,4 +240,114 @@ struct ManifestEntry {
     file: String,
     integrity: Option<String>,
     css: Option<Vec<String>>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_development_default() {
+        let development = Development::default();
+        assert_eq!(development.port, 5173);
+        assert_eq!(development.main, "src/main.ts");
+        assert_eq!(development.lang, "en");
+        assert_eq!(development.title, "Vite");
+        assert_eq!(development.react, false);
+    }
+
+    #[test]
+    fn test_development_builder_methods() {
+        let development = Development::default()
+            .port(8080)
+            .main("src/deep/index.ts")
+            .lang("id")
+            .title("Untitled Axum Inertia App")
+            .react();
+
+        assert_eq!(development.port, 8080);
+        assert_eq!(development.main, "src/deep/index.ts");
+        assert_eq!(development.lang, "id");
+        assert_eq!(development.title, "Untitled Axum Inertia App");
+        assert_eq!(development.react, true);
+    }
+
+    #[test]
+    fn test_development_into_config() {
+        let main_script = "src/index.ts";
+        let development = Development::default()
+            .port(8080)
+            .main(main_script)
+            .lang("lang-id")
+            .title("app-title-here")
+            .react();
+
+        let config = development.into_config();
+        assert_eq!(config.version(), None);
+
+        let config_layout = config.layout();
+        let binding = config_layout(r#"{"someprops": "somevalues"}"#.to_string());
+        let rendered_layout = binding.as_str();
+        println!("{}", rendered_layout);
+        assert!(rendered_layout.contains("<html lang=\"lang-id\">"));
+        assert!(rendered_layout.contains("<title>app-title-here</title>"));
+        assert!(rendered_layout.contains(r#"{&quot;someprops&quot;: &quot;somevalues&quot;}"#));
+        assert!(rendered_layout.contains("http://localhost:8080/@vite/client"));
+        assert!(rendered_layout.contains("window.__vite_plugin_react_preamble_installed__ = true"));
+    }
+
+    #[test]
+    fn test_production_new_entry_missing() {
+        let result = Production::new(r#"{"main.js": {}}"#, "nonexistent.js");
+        assert!(matches!(result, Err(_)));
+    }
+
+    #[test]
+    fn test_production_new() {
+        let manifest_content =
+            r#"{"main.js": {"file": "main.hash-id-here.js", "css": ["style.css"]}}"#;
+        let production_res = Production::new(manifest_content, "main.js");
+        assert!(production_res.is_ok());
+
+        let production = production_res.unwrap();
+        let content_hash = encode(Sha1::digest(manifest_content.as_bytes()));
+        assert_eq!(production.main.css, Some(vec!(String::from("style.css"))));
+        assert_eq!(production.title, "Vite");
+        assert_eq!(production.main.file, "main.hash-id-here.js");
+        assert_eq!(production.main.integrity, None);
+        assert_eq!(production.lang, "en");
+        assert_eq!(production.version, content_hash);
+    }
+
+    #[test]
+    fn test_production_builder_methods() {
+        let production = Production::new(
+            r#"{"main.js": {"file": "main.hash-id-here.js", "css": ["style.css"]}}"#,
+            "main.js",
+        )
+        .unwrap()
+        .lang("fr")
+        .title("Untitled Axum Inertia App");
+
+        assert_eq!(production.lang, "fr");
+        assert_eq!(production.title, "Untitled Axum Inertia App");
+    }
+
+    #[test]
+    fn test_production_into_config() {
+        let production = Production::new(r#"{"main.js": {"file": "main.hash-id-here.js", "integrity": "sha000-shaHashHere1234", "css": ["style.css"]}}"#, "main.js").unwrap()
+            .lang("jv")
+            .title("Untitled Axum Inertia App");
+
+        let config = production.into_config();
+        let config_layout = config.layout();
+        let binding = config_layout(r#"{"someprops": "somevalues"}"#.to_string());
+        let rendered_layout = binding.as_str();
+
+        assert!(rendered_layout.contains("<script type=\"module\" src=\"/main.hash-id-here.js\" integrity=\"sha000-shaHashHere1234\"></script>"));
+        assert!(rendered_layout.contains("<link rel=\"stylesheet\" href=\"/style.css\"/>"));
+        assert!(rendered_layout.contains("<html lang=\"jv\">"));
+        assert!(rendered_layout.contains("<title>Untitled Axum Inertia App</title>"));
+        assert!(rendered_layout.contains(r#"{&quot;someprops&quot;: &quot;somevalues&quot;}"#));
+    }
 }
