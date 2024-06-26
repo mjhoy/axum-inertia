@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Now supports precalculated integrity hash in the manifest file (via
+  `integrity` field).
+
 ## [0.4.0] 2024-06-12
 
 ### Added
