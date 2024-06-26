@@ -256,6 +256,7 @@ mod tests {
     #[test]
     fn test_development_default() {
         let development = Development::default();
+
         assert_eq!(development.port, 5173);
         assert_eq!(development.main, "src/main.ts");
         assert_eq!(development.lang, "en");
@@ -290,22 +291,27 @@ mod tests {
             .react();
 
         let config = development.into_config();
+
         assert_eq!(config.version(), None);
 
         let config_layout = config.layout();
         let binding = config_layout(r#"{"someprops": "somevalues"}"#.to_string());
         let rendered_layout = binding.as_str();
-        assert!(rendered_layout.contains("<html lang=\"lang-id\">"));
-        assert!(rendered_layout.contains("<title>app-title-here</title>"));
+
+        assert!(rendered_layout.contains(r#"<html lang="lang-id">"#));
+        assert!(rendered_layout.contains(r#"<title>app-title-here</title>"#));
         assert!(rendered_layout.contains(r#"{&quot;someprops&quot;: &quot;somevalues&quot;}"#));
-        assert!(rendered_layout.contains("http://localhost:8080/@vite/client"));
-        assert!(rendered_layout.contains("window.__vite_plugin_react_preamble_installed__ = true"));
+        assert!(rendered_layout.contains(r#"http://localhost:8080/@vite/client"#));
+        assert!(
+            rendered_layout.contains(r#"window.__vite_plugin_react_preamble_installed__ = true"#)
+        );
     }
 
     #[test]
     fn test_production_new_entry_missing() {
         let manifest_content = r#"{"main.js": {}}"#;
         let result = Production::new_from_string(manifest_content, "nonexistent.js");
+
         assert!(matches!(result, Err(_)));
     }
 
@@ -314,10 +320,12 @@ mod tests {
         let manifest_content =
             r#"{"main.js": {"file": "main.hash-id-here.js", "css": ["style.css"]}}"#;
         let production_res = Production::new_from_string(manifest_content, "main.js");
+
         assert!(production_res.is_ok());
 
         let production = production_res.unwrap();
         let content_hash = encode(Sha1::digest(manifest_content.as_bytes()));
+
         assert_eq!(production.main.css, Some(vec!(String::from("style.css"))));
         assert_eq!(production.title, "Vite");
         assert_eq!(production.main.file, "main.hash-id-here.js");
@@ -354,10 +362,10 @@ mod tests {
         let rendered_layout = binding.as_str();
 
         assert!(rendered_layout
-            .contains("<script type=\"module\" src=\"/main.hash-id-here.js\"></script>"));
-        assert!(rendered_layout.contains("<link rel=\"stylesheet\" href=\"/style.css\"/>"));
-        assert!(rendered_layout.contains("<html lang=\"jv\">"));
-        assert!(rendered_layout.contains("<title>Untitled Axum Inertia App</title>"));
+            .contains(r#"<script type="module" src="/main.hash-id-here.js"></script>"#));
+        assert!(rendered_layout.contains(r#"<link rel="stylesheet" href="/style.css"/>"#));
+        assert!(rendered_layout.contains(r#"<html lang="jv">"#));
+        assert!(rendered_layout.contains(r#"<title>Untitled Axum Inertia App</title>"#));
         assert!(rendered_layout.contains(r#"{&quot;someprops&quot;: &quot;somevalues&quot;}"#));
     }
 
@@ -374,10 +382,10 @@ mod tests {
         let binding = config_layout(r#"{"someprops": "somevalues"}"#.to_string());
         let rendered_layout = binding.as_str();
 
-        assert!(rendered_layout.contains("<script type=\"module\" src=\"/main.hash-id-here.js\" integrity=\"sha000-shaHashHere1234\"></script>"));
-        assert!(rendered_layout.contains("<link rel=\"stylesheet\" href=\"/style.css\"/>"));
-        assert!(rendered_layout.contains("<html lang=\"jv\">"));
-        assert!(rendered_layout.contains("<title>Untitled Axum Inertia App</title>"));
+        assert!(rendered_layout.contains(r#"<script type="module" src="/main.hash-id-here.js" integrity="sha000-shaHashHere1234"></script>"#));
+        assert!(rendered_layout.contains(r#"<link rel="stylesheet" href="/style.css"/>"#));
+        assert!(rendered_layout.contains(r#"<html lang="jv">"#));
+        assert!(rendered_layout.contains(r#"<title>Untitled Axum Inertia App</title>"#));
         assert!(rendered_layout.contains(r#"{&quot;someprops&quot;: &quot;somevalues&quot;}"#));
     }
 }
