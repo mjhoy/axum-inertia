@@ -144,16 +144,19 @@ impl Production {
         manifest_path: &'static str,
         main: &'static str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let bytes = if cfg!(test) {
-            manifest_path.as_bytes().to_vec()
-        } else {
-            std::fs::read(manifest_path)?
-        };
-        let manifest: HashMap<String, ManifestEntry> =
-            serde_json::from_str(&String::from_utf8(bytes.clone())?)?;
-        let entry = manifest.get(main).ok_or(ViteError::EntryMissing(main))?;
+        let bytes = std::fs::read(manifest_path)?;
+
+        Self::new_from_string(&String::from_utf8(bytes)?, main)
+    }
+
+    fn new_from_string(
+        manifest_string: &str,
+        main: &'static str,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut manifest: HashMap<String, ManifestEntry> = serde_json::from_str(&manifest_string)?;
+        let entry = manifest.remove(main).ok_or(ViteError::EntryMissing(main))?;
         let mut hasher = Sha1::new();
-        hasher.update(&bytes);
+        hasher.update(manifest_string.as_bytes());
         let result = hasher.finalize();
         let version = encode(result);
         let css = {
@@ -168,7 +171,7 @@ impl Production {
             }
         };
         Ok(Self {
-            main: entry.clone(),
+            main: entry,
             css,
             title: "Vite",
             lang: "en",
@@ -190,14 +193,18 @@ impl Production {
         let layout = Box::new(move |props| {
             let css = self.css.clone().unwrap_or("".to_string());
             let main_path = format!("/{}", self.main.file);
-            let main_integrity = self.main.integrity.clone().unwrap_or("".to_string());
+            let main_integrity = self.main.integrity.clone();
             html! {
                 html lang=(self.lang) {
                     head {
                         title { (self.title) }
                         meta charset="utf-8";
                         meta name="viewport" content="width=device-width, initial-scale=1.0";
-                        script type="module" src=(main_path) integrity=(main_integrity) {}
+                        @if let Some(integrity) = main_integrity {
+                            script type="module" src=(main_path) integrity=(integrity) {}
+                        } else {
+                            script type="module" src=(main_path) {}
+                        }
                         (PreEscaped(css))
                     }
                     body {
@@ -288,7 +295,6 @@ mod tests {
         let config_layout = config.layout();
         let binding = config_layout(r#"{"someprops": "somevalues"}"#.to_string());
         let rendered_layout = binding.as_str();
-        println!("{}", rendered_layout);
         assert!(rendered_layout.contains("<html lang=\"lang-id\">"));
         assert!(rendered_layout.contains("<title>app-title-here</title>"));
         assert!(rendered_layout.contains(r#"{&quot;someprops&quot;: &quot;somevalues&quot;}"#));
@@ -298,7 +304,8 @@ mod tests {
 
     #[test]
     fn test_production_new_entry_missing() {
-        let result = Production::new(r#"{"main.js": {}}"#, "nonexistent.js");
+        let manifest_content = r#"{"main.js": {}}"#;
+        let result = Production::new_from_string(manifest_content, "nonexistent.js");
         assert!(matches!(result, Err(_)));
     }
 
@@ -306,7 +313,7 @@ mod tests {
     fn test_production_new() {
         let manifest_content =
             r#"{"main.js": {"file": "main.hash-id-here.js", "css": ["style.css"]}}"#;
-        let production_res = Production::new(manifest_content, "main.js");
+        let production_res = Production::new_from_string(manifest_content, "main.js");
         assert!(production_res.is_ok());
 
         let production = production_res.unwrap();
@@ -321,13 +328,12 @@ mod tests {
 
     #[test]
     fn test_production_builder_methods() {
-        let production = Production::new(
-            r#"{"main.js": {"file": "main.hash-id-here.js", "css": ["style.css"]}}"#,
-            "main.js",
-        )
-        .unwrap()
-        .lang("fr")
-        .title("Untitled Axum Inertia App");
+        let manifest_content =
+            r#"{"main.js": {"file": "main.hash-id-here.js", "css": ["style.css"]}}"#;
+        let production = Production::new_from_string(manifest_content, "main.js")
+            .unwrap()
+            .lang("fr")
+            .title("Untitled Axum Inertia App");
 
         assert_eq!(production.lang, "fr");
         assert_eq!(production.title, "Untitled Axum Inertia App");
@@ -335,7 +341,31 @@ mod tests {
 
     #[test]
     fn test_production_into_config() {
-        let production = Production::new(r#"{"main.js": {"file": "main.hash-id-here.js", "integrity": "sha000-shaHashHere1234", "css": ["style.css"]}}"#, "main.js").unwrap()
+        let manifest_content =
+            r#"{"main.js": {"file": "main.hash-id-here.js", "css": ["style.css"]}}"#;
+        let production = Production::new_from_string(manifest_content, "main.js")
+            .unwrap()
+            .lang("jv")
+            .title("Untitled Axum Inertia App");
+
+        let config = production.into_config();
+        let config_layout = config.layout();
+        let binding = config_layout(r#"{"someprops": "somevalues"}"#.to_string());
+        let rendered_layout = binding.as_str();
+
+        assert!(rendered_layout
+            .contains("<script type=\"module\" src=\"/main.hash-id-here.js\"></script>"));
+        assert!(rendered_layout.contains("<link rel=\"stylesheet\" href=\"/style.css\"/>"));
+        assert!(rendered_layout.contains("<html lang=\"jv\">"));
+        assert!(rendered_layout.contains("<title>Untitled Axum Inertia App</title>"));
+        assert!(rendered_layout.contains(r#"{&quot;someprops&quot;: &quot;somevalues&quot;}"#));
+    }
+
+    #[test]
+    fn test_production_into_config_with_integrity() {
+        let manifest_content = r#"{"main.js": {"file": "main.hash-id-here.js", "integrity": "sha000-shaHashHere1234", "css": ["style.css"]}}"#;
+        let production = Production::new_from_string(manifest_content, "main.js")
+            .unwrap()
             .lang("jv")
             .title("Untitled Axum Inertia App");
 
