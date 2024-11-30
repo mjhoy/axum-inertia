@@ -43,7 +43,7 @@ mod tests {
             ..Request::test_request()
         };
         let page = Page {
-            component: "Testing",
+            component: "Testing".into(),
             props: serde_json::json!({ "test": "test" }),
             url: "/test".to_string(),
             version: None,
