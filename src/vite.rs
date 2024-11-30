@@ -40,6 +40,7 @@ pub struct Development {
     lang: &'static str,
     title: &'static str,
     react: bool,
+    encrypted: bool,
 }
 
 impl Default for Development {
@@ -50,6 +51,7 @@ impl Default for Development {
             lang: "en",
             title: "Vite",
             react: false,
+            encrypted: false,
         }
     }
 }
@@ -84,10 +86,16 @@ impl Development {
         self
     }
 
+    pub fn encrypted(mut self, encrypted: bool) -> Self {
+        self.encrypted = encrypted;
+        self
+    }
+
     pub fn into_config(self) -> InertiaConfig {
         let layout = Box::new(move |props| {
-            let vite_src = format!("http://localhost:{}/@vite/client", self.port);
-            let main_src = format!("http://localhost:{}/{}", self.port, self.main);
+            let http_protocol = if self.encrypted { "https" } else { "http" };
+            let vite_src = format!("{}://localhost:{}/@vite/client", http_protocol, self.port);
+            let main_src = format!("{}://localhost:{}/{}", http_protocol, self.port, self.main);
             let preamble_code = if self.react {
                 Some(PreEscaped(self.build_react_preamble()))
             } else {
@@ -117,15 +125,16 @@ impl Development {
     }
 
     fn build_react_preamble(&self) -> String {
+        let http_protocol = if self.encrypted { "https" } else { "http" };
         format!(
             r#"
-import RefreshRuntime from "http://localhost:{}/@react-refresh"
+import RefreshRuntime from "{}://localhost:{}/@react-refresh"
 RefreshRuntime.injectIntoGlobalHook(window)
 window.$RefreshReg$ = () => {{}}
 window.$RefreshSig$ = () => (type) => type
 window.__vite_plugin_react_preamble_installed__ = true
 "#,
-            self.port
+            http_protocol, self.port
         )
     }
 }
@@ -278,6 +287,20 @@ mod tests {
         assert_eq!(development.lang, "id");
         assert_eq!(development.title, "Untitled Axum Inertia App");
         assert_eq!(development.react, true);
+    }
+
+    #[test]
+    fn test_development_encryption() {
+        let development = Development::default().encrypted(true);
+        assert!(development.encrypted);
+
+        let config = development.into_config();
+
+        let config_layout = config.layout();
+        let binding = config_layout(r#"{"someprops": "somevalues"}"#.to_string());
+        let rendered_layout = binding.as_str();
+
+        assert!(rendered_layout.contains(r#"https://localhost:5173/@vite/client"#));
     }
 
     #[test]
