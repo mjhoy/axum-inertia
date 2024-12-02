@@ -138,10 +138,7 @@
 //! [Extractor]: https://docs.rs/axum/latest/axum/#extractors
 
 use async_trait::async_trait;
-use axum::{
-    extract::{FromRef, FromRequestParts},
-    response::IntoResponse,
-};
+use axum::extract::{FromRef, FromRequestParts};
 pub use config::InertiaConfig;
 use http::{request::Parts, HeaderMap, HeaderValue, StatusCode};
 use page::Page;
@@ -164,7 +161,7 @@ pub struct Inertia {
 }
 
 #[async_trait]
-impl<'a, S> FromRequestParts<S> for Inertia
+impl<S> FromRequestParts<S> for Inertia
 where
     S: Send + Sync,
     InertiaConfig: FromRef<S>,
@@ -192,13 +189,13 @@ where
     }
 }
 
-impl<'a> Inertia {
+impl Inertia {
     fn new(request: Request, config: InertiaConfig) -> Inertia {
         Inertia { request, config }
     }
 
     /// Renders an Inertia response.
-    pub fn render<S: Props>(self, component: &str, props: S) -> impl IntoResponse {
+    pub fn render<S: Props>(self, component: &str, props: S) -> Response {
         let request = self.request;
         let url = request.url.clone();
         let page = Page {
@@ -216,7 +213,6 @@ impl<'a> Inertia {
             request,
             config: self.config,
         }
-        .into_response()
     }
 }
 
