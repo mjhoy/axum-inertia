@@ -54,7 +54,10 @@ impl Default for Development<'_> {
     }
 }
 
-impl<'a> Development<'a> {
+impl<'a> Development<'a>
+where
+    'a: 'static,
+{
     pub fn port(mut self, port: u16) -> Self {
         self.port = port;
         self
@@ -84,7 +87,7 @@ impl<'a> Development<'a> {
         self
     }
 
-    pub fn into_config(self) -> InertiaConfig<'a> {
+    pub fn into_config(self) -> InertiaConfig {
         let layout = Box::new(move |props| {
             let vite_src = format!("http://localhost:{}/@vite/client", self.port);
             let main_src = format!("http://localhost:{}/{}", self.port, self.main);
@@ -140,7 +143,10 @@ pub struct Production<'a> {
     version: String,
 }
 
-impl<'a> Production<'a> {
+impl<'a> Production<'a>
+where
+    'a: 'static,
+{
     pub fn new(manifest_path: &str, main: &'a str) -> Result<Self, Box<dyn std::error::Error>> {
         let bytes = std::fs::read(manifest_path)?;
         let manifest: &'a str = Box::leak(String::from_utf8(bytes)?.into_boxed_str());
@@ -191,11 +197,12 @@ impl<'a> Production<'a> {
         self
     }
 
-    pub fn into_config(self) -> InertiaConfig<'a> {
+    pub fn into_config(self) -> InertiaConfig {
         let layout = Box::new(move |props| {
             let css = self.css.clone().unwrap_or("".to_string());
             let main_path = format!("/{}", self.main.file);
             let main_integrity = self.main.integrity.clone();
+
             html! {
                 html lang=(self.lang) {
                     head {
@@ -216,6 +223,7 @@ impl<'a> Production<'a> {
             }
             .into_string()
         });
+
         InertiaConfig::new(Some(self.version), layout)
     }
 }

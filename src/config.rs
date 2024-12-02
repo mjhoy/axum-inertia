@@ -1,18 +1,18 @@
 use std::sync::Arc;
 
-type LayoutResolver<'a> = Box<dyn Fn(String) -> String + Send + Sync + 'a>;
+type LayoutResolver = Box<dyn Fn(String) -> String + Send + Sync>;
 
-struct Inner<'a> {
+struct Inner {
     version: Option<String>,
-    layout: LayoutResolver<'a>,
+    layout: LayoutResolver,
 }
 
 #[derive(Clone)]
-pub struct InertiaConfig<'a> {
-    inner: Arc<Inner<'a>>,
+pub struct InertiaConfig {
+    inner: Arc<Inner>,
 }
 
-impl InertiaConfig<'_> {
+impl InertiaConfig {
     /// Constructs a new InertiaConfig object.
     ///
     /// `layout` provides information about how to render the initial
@@ -31,7 +31,7 @@ impl InertiaConfig<'_> {
     }
 
     /// Returns a reference to the layout function.
-    pub fn layout(&self) -> &(dyn Fn(String) -> String + Send + Sync) {
+    pub fn layout(&self) -> &LayoutResolver {
         &self.inner.layout
     }
 }

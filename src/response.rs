@@ -10,7 +10,7 @@ use http::HeaderMap;
 pub struct Response<'a> {
     pub(crate) request: Request,
     pub(crate) page: Page<'a>,
-    pub(crate) config: InertiaConfig<'a>,
+    pub(crate) config: InertiaConfig,
 }
 
 impl IntoResponse for Response<'_> {

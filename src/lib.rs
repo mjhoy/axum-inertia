@@ -9,7 +9,7 @@
 //! use axum::{Json, response::IntoResponse};
 //! use serde_json::json;
 //!
-//! async fn my_handler_fn(i: Inertia<'_>) -> impl IntoResponse {
+//! async fn my_handler_fn(i: Inertia) -> impl IntoResponse {
 //!     i.render("Pages/MyPageComponent", json!({"myPageProps": "true"}))
 //! }
 //! ```
@@ -58,7 +58,7 @@
 //!     .route("/", get(get_root))
 //!     .with_state(inertia);
 //!
-//! # async fn get_root(_i: Inertia<'_>) -> impl IntoResponse { "foo" }
+//! # async fn get_root(_i: Inertia) -> impl IntoResponse { "foo" }
 //! ```
 //!
 //! The [Inertia] struct is then available as an axum [Extractor] and
@@ -69,7 +69,7 @@
 //! use axum_inertia::Inertia;
 //! use serde_json::json;
 //!
-//! async fn get_root(i: Inertia<'_>) -> impl IntoResponse {
+//! async fn get_root(i: Inertia) -> impl IntoResponse {
 //!     i.render("Pages/Home", json!({ "posts": vec!["post one", "post two"] }))
 //! }
 //! ```
@@ -96,13 +96,13 @@
 //! use axum_inertia::{vite, Inertia, InertiaConfig};
 //!
 //! #[derive(Clone)]
-//! struct AppState<'a> {
-//!     inertia: InertiaConfig<'a>,
+//! struct AppState {
+//!     inertia: InertiaConfig,
 //!     name: String,
 //! }
 //!
-//! impl<'a> FromRef<AppState<'a>> for InertiaConfig<'a> {
-//!     fn from_ref(app_state: &AppState<'a>) -> InertiaConfig<'a> {
+//! impl<'a> FromRef<AppState> for InertiaConfig {
+//!     fn from_ref(app_state: &AppState) -> InertiaConfig {
 //!         app_state.inertia.clone()
 //!     }
 //! }
@@ -123,7 +123,7 @@
 //!     .route("/", get(get_root))
 //!     .with_state(app_state);
 //!
-//! # async fn get_root(_i: Inertia<'_>) -> impl IntoResponse { "fsssoo" }
+//! # async fn get_root(_i: Inertia) -> impl IntoResponse { "fsssoo" }
 //! ```
 //!
 //! # Configuring development and production
@@ -158,16 +158,16 @@ mod response;
 pub mod vite;
 
 #[derive(Clone)]
-pub struct Inertia<'a> {
+pub struct Inertia {
     request: Request,
-    config: InertiaConfig<'a>,
+    config: InertiaConfig,
 }
 
 #[async_trait]
-impl<'a, S> FromRequestParts<S> for Inertia<'a>
+impl<'a, S> FromRequestParts<S> for Inertia
 where
     S: Send + Sync,
-    InertiaConfig<'a>: FromRef<S>,
+    InertiaConfig: FromRef<S>,
 {
     type Rejection = (StatusCode, HeaderMap<HeaderValue>);
 
@@ -192,7 +192,7 @@ where
     }
 }
 
-impl<'a> Inertia<'a> {
+impl<'a> Inertia {
     fn new(request: Request, config: InertiaConfig) -> Inertia {
         Inertia { request, config }
     }
@@ -230,7 +230,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_works() {
-        async fn handler(i: Inertia<'_>) -> impl IntoResponse {
+        async fn handler(i: Inertia) -> impl IntoResponse {
             i.render("foo!", json!({"bar": "baz"}))
         }
 
@@ -266,7 +266,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_responds_with_conflict_on_version_mismatch() {
-        async fn handler(i: Inertia<'_>) -> impl IntoResponse {
+        async fn handler(i: Inertia) -> impl IntoResponse {
             i.render("foo!", json!({"bar": "baz"}))
         }
 
