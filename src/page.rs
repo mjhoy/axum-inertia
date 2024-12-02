@@ -8,8 +8,8 @@ use serde_json::Value;
 ///
 /// More info at: https://inertiajs.com/the-protocol#the-page-object
 #[derive(Serialize)]
-pub(crate) struct Page {
-    pub(crate) component: &'static str,
+pub(crate) struct Page<'a> {
+    pub(crate) component: &'a str,
     pub(crate) props: Value,
     pub(crate) url: String,
     pub(crate) version: Option<String>,

@@ -7,13 +7,13 @@ use http::HeaderMap;
 ///
 /// More information at:
 /// https://inertiajs.com/the-protocol#inertia-responses
-pub struct Response {
+pub struct Response<'a> {
     pub(crate) request: Request,
-    pub(crate) page: Page,
+    pub(crate) page: Page<'a>,
     pub(crate) config: InertiaConfig,
 }
 
-impl IntoResponse for Response {
+impl IntoResponse for Response<'_> {
     fn into_response(self) -> axum::response::Response {
         let mut headers = HeaderMap::new();
         if let Some(version) = &self.config.version() {
