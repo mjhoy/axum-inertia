@@ -10,7 +10,7 @@ use http::HeaderMap;
 pub struct Response<'a> {
     pub(crate) request: Request,
     pub(crate) page: Page<'a>,
-    pub(crate) config: InertiaConfig,
+    pub(crate) config: InertiaConfig<'a>,
 }
 
 impl IntoResponse for Response<'_> {
@@ -19,13 +19,14 @@ impl IntoResponse for Response<'_> {
         if let Some(version) = &self.config.version() {
             headers.insert("X-Inertia-Version", version.parse().unwrap());
         }
+
         if self.request.is_xhr {
             headers.insert("X-Inertia", "true".parse().unwrap());
-            (headers, Json(self.page)).into_response()
-        } else {
-            let html = (self.config.layout())(serde_json::to_string(&self.page).unwrap());
-            (headers, Html(html)).into_response()
+            return (headers, Json(self.page)).into_response();
         }
+
+        let html = (self.config.layout())(serde_json::to_string(&self.page).unwrap());
+        (headers, Html(html)).into_response()
     }
 }
 

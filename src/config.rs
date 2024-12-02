@@ -1,25 +1,24 @@
 use std::sync::Arc;
 
-struct Inner {
+type LayoutResolver<'a> = Box<dyn Fn(String) -> String + Send + Sync + 'a>;
+
+struct Inner<'a> {
     version: Option<String>,
-    layout: Box<dyn Fn(String) -> String + Send + Sync>,
+    layout: LayoutResolver<'a>,
 }
 
 #[derive(Clone)]
-pub struct InertiaConfig {
-    inner: Arc<Inner>,
+pub struct InertiaConfig<'a> {
+    inner: Arc<Inner<'a>>,
 }
 
-impl InertiaConfig {
+impl InertiaConfig<'_> {
     /// Constructs a new InertiaConfig object.
     ///
     /// `layout` provides information about how to render the initial
     /// page load. See the [crate::vite] module for an implementation
     /// of this for vite.
-    pub fn new(
-        version: Option<String>,
-        layout: Box<dyn Fn(String) -> String + Send + Sync>,
-    ) -> InertiaConfig {
+    pub fn new(version: Option<String>, layout: LayoutResolver) -> InertiaConfig {
         let inner = Inner { version, layout };
         InertiaConfig {
             inner: Arc::new(inner),

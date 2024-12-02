@@ -9,7 +9,7 @@
 //! use axum::{Json, response::IntoResponse};
 //! use serde_json::json;
 //!
-//! async fn my_handler_fn(i: Inertia) -> impl IntoResponse {
+//! async fn my_handler_fn(i: Inertia<'_>) -> impl IntoResponse {
 //!     i.render("Pages/MyPageComponent", json!({"myPageProps": "true"}))
 //! }
 //! ```
@@ -58,7 +58,7 @@
 //!     .route("/", get(get_root))
 //!     .with_state(inertia);
 //!
-//! # async fn get_root(_i: Inertia) -> impl IntoResponse { "foo" }
+//! # async fn get_root(_i: Inertia<'_>) -> impl IntoResponse { "foo" }
 //! ```
 //!
 //! The [Inertia] struct is then available as an axum [Extractor] and
@@ -66,10 +66,10 @@
 //!
 //! ```rust
 //! use axum::response::IntoResponse;
-//! # use axum_inertia::Inertia;
+//! use axum_inertia::Inertia;
 //! use serde_json::json;
 //!
-//! async fn get_root(i: Inertia) -> impl IntoResponse {
+//! async fn get_root(i: Inertia<'_>) -> impl IntoResponse {
 //!     i.render("Pages/Home", json!({ "posts": vec!["post one", "post two"] }))
 //! }
 //! ```
@@ -91,18 +91,18 @@
 //! [InertiaConfig]. For instance:
 //!
 //! ```rust
+//! use axum::response::IntoResponse;
+//! use axum::{extract::FromRef, routing::get, Router};
 //! use axum_inertia::{vite, Inertia, InertiaConfig};
-//! use axum::{Router, routing::get, extract::FromRef};
-//! # use axum::response::IntoResponse;
 //!
 //! #[derive(Clone)]
-//! struct AppState {
-//!     inertia: InertiaConfig,
-//!     name: String
+//! struct AppState<'a> {
+//!     inertia: InertiaConfig<'a>,
+//!     name: String,
 //! }
 //!
-//! impl FromRef<AppState> for InertiaConfig {
-//!     fn from_ref(app_state: &AppState) -> InertiaConfig {
+//! impl<'a> FromRef<AppState<'a>> for InertiaConfig<'a> {
+//!     fn from_ref(app_state: &AppState<'a>) -> InertiaConfig<'a> {
 //!         app_state.inertia.clone()
 //!     }
 //! }
@@ -113,12 +113,17 @@
 //!     .lang("en")
 //!     .title("My inertia app")
 //!     .into_config();
-//! let app_state = AppState { inertia, name: "foo".to_string() };
+//!
+//! let app_state = AppState {
+//!     inertia,
+//!     name: "foo".to_string(),
+//! };
+//!
 //! let app: Router = Router::new()
 //!     .route("/", get(get_root))
 //!     .with_state(app_state);
 //!
-//! # async fn get_root(_i: Inertia) -> impl IntoResponse { "foo" }
+//! # async fn get_root(_i: Inertia<'_>) -> impl IntoResponse { "fsssoo" }
 //! ```
 //!
 //! # Configuring development and production
@@ -133,7 +138,10 @@
 //! [Extractor]: https://docs.rs/axum/latest/axum/#extractors
 
 use async_trait::async_trait;
-use axum::extract::{FromRef, FromRequestParts};
+use axum::{
+    extract::{FromRef, FromRequestParts},
+    response::IntoResponse,
+};
 pub use config::InertiaConfig;
 use http::{request::Parts, HeaderMap, HeaderValue, StatusCode};
 use page::Page;
@@ -150,16 +158,16 @@ mod response;
 pub mod vite;
 
 #[derive(Clone)]
-pub struct Inertia {
+pub struct Inertia<'a> {
     request: Request,
-    config: InertiaConfig,
+    config: InertiaConfig<'a>,
 }
 
 #[async_trait]
-impl<S> FromRequestParts<S> for Inertia
+impl<'a, S> FromRequestParts<S> for Inertia<'a>
 where
     S: Send + Sync,
-    InertiaConfig: FromRef<S>,
+    InertiaConfig<'a>: FromRef<S>,
 {
     type Rejection = (StatusCode, HeaderMap<HeaderValue>);
 
@@ -184,13 +192,13 @@ where
     }
 }
 
-impl Inertia {
+impl<'a> Inertia<'a> {
     fn new(request: Request, config: InertiaConfig) -> Inertia {
         Inertia { request, config }
     }
 
     /// Renders an Inertia response.
-    pub fn render<S: Props>(self, component: &str, props: S) -> Response {
+    pub fn render<S: Props>(self, component: &str, props: S) -> impl IntoResponse {
         let request = self.request;
         let url = request.url.clone();
         let page = Page {
@@ -202,11 +210,13 @@ impl Inertia {
             url,
             version: self.config.version().clone(),
         };
+
         Response {
             page,
             request,
             config: self.config,
         }
+        .into_response()
     }
 }
 
@@ -220,7 +230,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_works() {
-        async fn handler(i: Inertia) -> impl IntoResponse {
+        async fn handler(i: Inertia<'_>) -> impl IntoResponse {
             i.render("foo!", json!({"bar": "baz"}))
         }
 
@@ -256,7 +266,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_responds_with_conflict_on_version_mismatch() {
-        async fn handler(i: Inertia) -> impl IntoResponse {
+        async fn handler(i: Inertia<'_>) -> impl IntoResponse {
             i.render("foo!", json!({"bar": "baz"}))
         }
 

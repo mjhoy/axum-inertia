@@ -34,15 +34,15 @@ use serde::Deserialize;
 use sha1::{Digest, Sha1};
 use std::collections::HashMap;
 
-pub struct Development {
+pub struct Development<'a> {
     port: u16,
-    main: &'static str,
-    lang: &'static str,
-    title: &'static str,
+    main: &'a str,
+    lang: &'a str,
+    title: &'a str,
     react: bool,
 }
 
-impl Default for Development {
+impl Default for Development<'_> {
     fn default() -> Self {
         Development {
             port: 5173,
@@ -54,23 +54,23 @@ impl Default for Development {
     }
 }
 
-impl Development {
+impl<'a> Development<'a> {
     pub fn port(mut self, port: u16) -> Self {
         self.port = port;
         self
     }
 
-    pub fn main(mut self, main: &'static str) -> Self {
+    pub fn main(mut self, main: &'a str) -> Self {
         self.main = main;
         self
     }
 
-    pub fn lang(mut self, lang: &'static str) -> Self {
+    pub fn lang(mut self, lang: &'a str) -> Self {
         self.lang = lang;
         self
     }
 
-    pub fn title(mut self, title: &'static str) -> Self {
+    pub fn title(mut self, title: &'a str) -> Self {
         self.title = title;
         self
     }
@@ -84,7 +84,7 @@ impl Development {
         self
     }
 
-    pub fn into_config(self) -> InertiaConfig {
+    pub fn into_config(self) -> InertiaConfig<'a> {
         let layout = Box::new(move |props| {
             let vite_src = format!("http://localhost:{}/@vite/client", self.port);
             let main_src = format!("http://localhost:{}/{}", self.port, self.main);
@@ -113,6 +113,7 @@ impl Development {
             }
             .into_string()
         });
+
         InertiaConfig::new(None, layout)
     }
 
@@ -130,31 +131,32 @@ window.__vite_plugin_react_preamble_installed__ = true
     }
 }
 
-pub struct Production {
+pub struct Production<'a> {
     main: ManifestEntry,
     css: Option<String>,
-    title: &'static str,
-    lang: &'static str,
+    title: &'a str,
+    lang: &'a str,
     /// SHA1 hash of the contents of the manifest file.
     version: String,
 }
 
-impl Production {
-    pub fn new(
-        manifest_path: &'static str,
-        main: &'static str,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+impl<'a> Production<'a> {
+    pub fn new(manifest_path: &str, main: &'a str) -> Result<Self, Box<dyn std::error::Error>> {
         let bytes = std::fs::read(manifest_path)?;
+        let manifest: &'a str = Box::leak(String::from_utf8(bytes)?.into_boxed_str());
 
-        Self::new_from_string(&String::from_utf8(bytes)?, main)
+        Self::new_from_string(manifest, main)
     }
 
     fn new_from_string(
         manifest_string: &str,
-        main: &'static str,
+        main: &'a str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let mut manifest: HashMap<String, ManifestEntry> = serde_json::from_str(&manifest_string)?;
-        let entry = manifest.remove(main).ok_or(ViteError::EntryMissing(main))?;
+        let mut manifest: HashMap<String, ManifestEntry> = serde_json::from_str(manifest_string)?;
+        let entry = manifest
+            .remove(main)
+            .ok_or(ViteError::EntryMissing(main.to_string().into_boxed_str()))?;
+
         let mut hasher = Sha1::new();
         hasher.update(manifest_string.as_bytes());
         let result = hasher.finalize();
@@ -179,17 +181,17 @@ impl Production {
         })
     }
 
-    pub fn lang(mut self, lang: &'static str) -> Self {
+    pub fn lang(mut self, lang: &'a str) -> Self {
         self.lang = lang;
         self
     }
 
-    pub fn title(mut self, title: &'static str) -> Self {
+    pub fn title(mut self, title: &'a str) -> Self {
         self.title = title;
         self
     }
 
-    pub fn into_config(self) -> InertiaConfig {
+    pub fn into_config(self) -> InertiaConfig<'a> {
         let layout = Box::new(move |props| {
             let css = self.css.clone().unwrap_or("".to_string());
             let main_path = format!("/{}", self.main.file);
@@ -221,7 +223,7 @@ impl Production {
 #[derive(Debug)]
 pub enum ViteError {
     ManifestMissing(std::io::Error),
-    EntryMissing(&'static str),
+    EntryMissing(Box<str>),
 }
 
 impl std::fmt::Display for ViteError {
@@ -261,7 +263,7 @@ mod tests {
         assert_eq!(development.main, "src/main.ts");
         assert_eq!(development.lang, "en");
         assert_eq!(development.title, "Vite");
-        assert_eq!(development.react, false);
+        assert!(!development.react);
     }
 
     #[test]
@@ -277,7 +279,7 @@ mod tests {
         assert_eq!(development.main, "src/deep/index.ts");
         assert_eq!(development.lang, "id");
         assert_eq!(development.title, "Untitled Axum Inertia App");
-        assert_eq!(development.react, true);
+        assert!(development.react);
     }
 
     #[test]
@@ -312,7 +314,7 @@ mod tests {
         let manifest_content = r#"{"main.js": {}}"#;
         let result = Production::new_from_string(manifest_content, "nonexistent.js");
 
-        assert!(matches!(result, Err(_)));
+        assert!(result.is_err());
     }
 
     #[test]
