@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.5.1] 2024-12-03
+
+### Added
+
+- Supports https for vite development (thanks @Dsaquel #32)
+
 ## [0.5.0] 2024-06-26
 
 ### Added
