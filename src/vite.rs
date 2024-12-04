@@ -35,6 +35,7 @@ use sha1::{Digest, Sha1};
 use std::collections::HashMap;
 
 pub struct Development {
+    base: &'static str,
     port: u16,
     main: &'static str,
     lang: &'static str,
@@ -46,6 +47,7 @@ pub struct Development {
 impl Default for Development {
     fn default() -> Self {
         Development {
+            base: "/",
             port: 5173,
             main: "src/main.ts",
             lang: "en",
@@ -57,6 +59,16 @@ impl Default for Development {
 }
 
 impl Development {
+    /// ```rust
+    ///     vite::Development::default()
+    ///         .base("/app/") // Must pass slash before and after
+    ///         .into_config()
+    /// ```
+    pub fn base(mut self, base: &'static str) -> Self {
+        self.base = base;
+        self
+    }
+
     pub fn port(mut self, port: u16) -> Self {
         self.port = port;
         self
@@ -94,8 +106,14 @@ impl Development {
     pub fn into_config(self) -> InertiaConfig {
         let layout = Box::new(move |props| {
             let http_protocol = if self.https { "https" } else { "http" };
-            let vite_src = format!("{}://localhost:{}/@vite/client", http_protocol, self.port);
-            let main_src = format!("{}://localhost:{}/{}", http_protocol, self.port, self.main);
+            let vite_src = format!(
+                "{}://localhost:{}{}@vite/client",
+                http_protocol, self.port, self.base
+            );
+            let main_src = format!(
+                "{}://localhost:{}{}{}",
+                http_protocol, self.port, self.base, self.main
+            );
             let preamble_code = if self.react {
                 Some(PreEscaped(self.build_react_preamble()))
             } else {
@@ -294,9 +312,10 @@ mod tests {
     }
 
     #[test]
-    fn test_development_encryption() {
-        let development = Development::default().https(true);
+    fn test_development_url() {
+        let development = Development::default().base("/app/").https(true);
         assert!(development.https);
+        assert_eq!(development.base, "/app/");
 
         let config = development.into_config();
 
@@ -304,7 +323,8 @@ mod tests {
         let binding = config_layout(r#"{"someprops": "somevalues"}"#.to_string());
         let rendered_layout = binding.as_str();
 
-        assert!(rendered_layout.contains(r#"https://localhost:5173/@vite/client"#));
+        assert!(rendered_layout.contains(r#"https://localhost:5173/app/@vite/client"#));
+        assert!(rendered_layout.contains(r#"https://localhost:5173/app/src/main.ts"#));
     }
 
     #[test]
