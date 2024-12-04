@@ -65,7 +65,7 @@
 //! can be used in handlers like so:
 //!
 //! ```rust
-//! use axum::response::IntoResponse;
+//! # use axum::response::IntoResponse;
 //! use axum_inertia::Inertia;
 //! use serde_json::json;
 //!
@@ -123,7 +123,7 @@
 //!     .route("/", get(get_root))
 //!     .with_state(app_state);
 //!
-//! # async fn get_root(_i: Inertia) -> impl IntoResponse { "fsssoo" }
+//! # async fn get_root(_i: Inertia) -> impl IntoResponse { "foo" }
 //! ```
 //!
 //! # Configuring development and production
