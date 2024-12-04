@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Remove static lifetimes, providing a better way of defining `str`
+fields.
+
+
 ## [0.5.1] 2024-12-03
 
 ### Added
