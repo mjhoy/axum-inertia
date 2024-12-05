@@ -162,7 +162,7 @@ impl Production {
         manifest_string: &str,
         main: &'static str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let mut manifest: HashMap<String, ManifestEntry> = serde_json::from_str(&manifest_string)?;
+        let mut manifest: HashMap<String, ManifestEntry> = serde_json::from_str(manifest_string)?;
         let entry = manifest.remove(main).ok_or(ViteError::EntryMissing(main))?;
         let mut hasher = Sha1::new();
         hasher.update(manifest_string.as_bytes());

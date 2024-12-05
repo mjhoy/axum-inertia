@@ -17,19 +17,19 @@
 //! This does the following:
 //!
 //! - If the incoming request is the initial page load (i.e., does not
-//! have the `X-Inertia` header set to `true`), the
-//! [render](Inertia::render) method responds with an html page, which
-//! is configurable when setting up the initial Inertia state (see
-//! [Getting started](#getting-started) below).
+//!   have the `X-Inertia` header set to `true`), the
+//!   [render](Inertia::render) method responds with an html page, which
+//!   is configurable when setting up the initial Inertia state (see
+//!   [Getting started](#getting-started) below).
 //!
 //! - Otherwise, the handler responses with the standard inertia
-//! "Page" object json, with the included component and page props
-//! passed to [render](Inertia::render).
+//!   "Page" object json, with the included component and page props
+//!   passed to [render](Inertia::render).
 //!
 //! - If the request has a mismatching asset version (again, this is
-//! configurable), the handler responds with a `409 Conflict` to tell
-//! the client to reload the page. The function body of the handler is
-//! not executed in this case.
+//!   configurable), the handler responds with a `409 Conflict` to tell
+//!   the client to reload the page. The function body of the handler is
+//!   not executed in this case.
 //!
 //! # Getting started
 //!

@@ -34,8 +34,8 @@ where
 {
     type Rejection = (StatusCode, HeaderMap<HeaderValue>);
 
-    async fn from_request_parts(mut parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let original_uri = OriginalUri::from_request_parts(&mut parts, state)
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let original_uri = OriginalUri::from_request_parts(parts, state)
             .await
             .unwrap_or_else(|e| match e {});
         let url = original_uri.0.path().to_string();
