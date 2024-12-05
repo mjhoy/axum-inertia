@@ -47,7 +47,7 @@ pub struct Development {
 impl Default for Development {
     fn default() -> Self {
         Development {
-            base: "/",
+            base: "",
             port: 5173,
             main: "src/main.ts",
             lang: "en",
@@ -59,11 +59,13 @@ impl Default for Development {
 }
 
 impl Development {
+    /// Adds a path as a prefix to included vite client assets, e.g., "`/app`"
+    ///
     /// ```rust
     /// use axum_inertia::vite;
     ///
     ///     vite::Development::default()
-    ///         .base("/app/") // Must pass slash before and after
+    ///         .base("/app")
     ///         .into_config();
     /// ```
     pub fn base(mut self, base: &'static str) -> Self {
@@ -109,11 +111,11 @@ impl Development {
         let layout = Box::new(move |props| {
             let http_protocol = if self.https { "https" } else { "http" };
             let vite_src = format!(
-                "{}://localhost:{}{}@vite/client",
+                "{}://localhost:{}{}/@vite/client",
                 http_protocol, self.port, self.base
             );
             let main_src = format!(
-                "{}://localhost:{}{}{}",
+                "{}://localhost:{}{}/{}",
                 http_protocol, self.port, self.base, self.main
             );
             let preamble_code = if self.react {
@@ -149,13 +151,13 @@ impl Development {
         let http_protocol = if self.https { "https" } else { "http" };
         format!(
             r#"
-import RefreshRuntime from "{}://localhost:{}/@react-refresh"
+import RefreshRuntime from "{}://localhost:{}{}/@react-refresh"
 RefreshRuntime.injectIntoGlobalHook(window)
 window.$RefreshReg$ = () => {{}}
 window.$RefreshSig$ = () => (type) => type
 window.__vite_plugin_react_preamble_installed__ = true
 "#,
-            http_protocol, self.port
+            http_protocol, self.port, self.base
         )
     }
 }
@@ -315,9 +317,9 @@ mod tests {
 
     #[test]
     fn test_development_url() {
-        let development = Development::default().base("/app/").https(true);
+        let development = Development::default().base("/app").https(true);
         assert!(development.https);
-        assert_eq!(development.base, "/app/");
+        assert_eq!(development.base, "/app");
 
         let config = development.into_config();
 
@@ -333,6 +335,7 @@ mod tests {
     fn test_development_into_config() {
         let main_script = "src/index.ts";
         let development = Development::default()
+            .base("/app")
             .port(8080)
             .main(main_script)
             .lang("lang-id")
@@ -350,7 +353,7 @@ mod tests {
         assert!(rendered_layout.contains(r#"<html lang="lang-id">"#));
         assert!(rendered_layout.contains(r#"<title>app-title-here</title>"#));
         assert!(rendered_layout.contains(r#"{&quot;someprops&quot;: &quot;somevalues&quot;}"#));
-        assert!(rendered_layout.contains(r#"http://localhost:8080/@vite/client"#));
+        assert!(rendered_layout.contains(r#"http://localhost:8080/app/@vite/client"#));
         assert!(
             rendered_layout.contains(r#"window.__vite_plugin_react_preamble_installed__ = true"#)
         );
