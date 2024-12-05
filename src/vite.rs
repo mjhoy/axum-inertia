@@ -121,6 +121,7 @@ impl Development {
             }
             .into_string()
         });
+
         InertiaConfig::new(None, layout)
     }
 
@@ -150,12 +151,13 @@ pub struct Production {
 
 impl Production {
     pub fn new(
-        manifest_path: &'static str,
+        manifest_path: &str,
         main: &'static str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let bytes = std::fs::read(manifest_path)?;
+        let manifest: &'static str = Box::leak(String::from_utf8(bytes)?.into_boxed_str());
 
-        Self::new_from_string(&String::from_utf8(bytes)?, main)
+        Self::new_from_string(manifest, main)
     }
 
     fn new_from_string(
@@ -203,6 +205,7 @@ impl Production {
             let css = self.css.clone().unwrap_or("".to_string());
             let main_path = format!("/{}", self.main.file);
             let main_integrity = self.main.integrity.clone();
+
             html! {
                 html lang=(self.lang) {
                     head {
@@ -223,6 +226,7 @@ impl Production {
             }
             .into_string()
         });
+
         InertiaConfig::new(Some(self.version), layout)
     }
 }

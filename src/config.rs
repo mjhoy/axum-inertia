@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
+type LayoutResolver = Box<dyn Fn(String) -> String + Send + Sync>;
+
 struct Inner {
     version: Option<String>,
-    layout: Box<dyn Fn(String) -> String + Send + Sync>,
+    layout: LayoutResolver,
 }
 
 #[derive(Clone)]
@@ -16,10 +18,7 @@ impl InertiaConfig {
     /// `layout` provides information about how to render the initial
     /// page load. See the [crate::vite] module for an implementation
     /// of this for vite.
-    pub fn new(
-        version: Option<String>,
-        layout: Box<dyn Fn(String) -> String + Send + Sync>,
-    ) -> InertiaConfig {
+    pub fn new(version: Option<String>, layout: LayoutResolver) -> InertiaConfig {
         let inner = Inner { version, layout };
         InertiaConfig {
             inner: Arc::new(inner),
@@ -32,7 +31,7 @@ impl InertiaConfig {
     }
 
     /// Returns a reference to the layout function.
-    pub fn layout(&self) -> &(dyn Fn(String) -> String + Send + Sync) {
+    pub fn layout(&self) -> &LayoutResolver {
         &self.inner.layout
     }
 }

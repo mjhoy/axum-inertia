@@ -65,8 +65,8 @@
 //! can be used in handlers like so:
 //!
 //! ```rust
-//! use axum::response::IntoResponse;
-//! # use axum_inertia::Inertia;
+//! # use axum::response::IntoResponse;
+//! use axum_inertia::Inertia;
 //! use serde_json::json;
 //!
 //! async fn get_root(i: Inertia) -> impl IntoResponse {
@@ -91,14 +91,14 @@
 //! [InertiaConfig]. For instance:
 //!
 //! ```rust
+//! use axum::response::IntoResponse;
+//! use axum::{extract::FromRef, routing::get, Router};
 //! use axum_inertia::{vite, Inertia, InertiaConfig};
-//! use axum::{Router, routing::get, extract::FromRef};
-//! # use axum::response::IntoResponse;
 //!
 //! #[derive(Clone)]
 //! struct AppState {
 //!     inertia: InertiaConfig,
-//!     name: String
+//!     name: String,
 //! }
 //!
 //! impl FromRef<AppState> for InertiaConfig {
@@ -113,7 +113,12 @@
 //!     .lang("en")
 //!     .title("My inertia app")
 //!     .into_config();
-//! let app_state = AppState { inertia, name: "foo".to_string() };
+//!
+//! let app_state = AppState {
+//!     inertia,
+//!     name: "foo".to_string(),
+//! };
+//!
 //! let app: Router = Router::new()
 //!     .route("/", get(get_root))
 //!     .with_state(app_state);
@@ -190,7 +195,7 @@ impl Inertia {
     }
 
     /// Renders an Inertia response.
-    pub fn render<S: Props>(self, component: &'static str, props: S) -> Response {
+    pub fn render<S: Props>(self, component: &str, props: S) -> Response {
         let request = self.request;
         let url = request.url.clone();
         let page = Page {
@@ -202,6 +207,7 @@ impl Inertia {
             url,
             version: self.config.version().clone(),
         };
+
         Response {
             page,
             request,

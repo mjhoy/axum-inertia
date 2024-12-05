@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Remove static lifetime from `Page` struct.
+
+
 ## [0.5.1] 2024-12-03
 
 ### Added
