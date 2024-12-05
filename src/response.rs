@@ -19,14 +19,13 @@ impl IntoResponse for Response<'_> {
         if let Some(version) = &self.config.version() {
             headers.insert("X-Inertia-Version", version.parse().unwrap());
         }
-
         if self.request.is_xhr {
             headers.insert("X-Inertia", "true".parse().unwrap());
-            return (headers, Json(self.page)).into_response();
+            (headers, Json(self.page)).into_response()
+        } else {
+            let html = (self.config.layout())(serde_json::to_string(&self.page).unwrap());
+            (headers, Html(html)).into_response()
         }
-
-        let html = (self.config.layout())(serde_json::to_string(&self.page).unwrap());
-        (headers, Html(html)).into_response()
     }
 }
 
