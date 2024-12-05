@@ -60,9 +60,11 @@ impl Default for Development {
 
 impl Development {
     /// ```rust
+    /// use axum_inertia::vite;
+    ///
     ///     vite::Development::default()
     ///         .base("/app/") // Must pass slash before and after
-    ///         .into_config()
+    ///         .into_config();
     /// ```
     pub fn base(mut self, base: &'static str) -> Self {
         self.base = base;
