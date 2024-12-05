@@ -2,9 +2,20 @@
 
 ## [Unreleased]
 
-- Remove static lifetime from `Page` struct.
-- Supports base public path in development
+## [0.6.0] 2024-12-05
 
+### Added
+
+- (Breaking) Remove static lifetime from `Page` struct
+  ([#31](https://github.com/mjhoy/axum-inertia/pull/31) thanks
+  [@KaioFelps](https://github.com/KaioFelps)). This allows for more flexible
+  lifetimes in the `component` string reference, for e.g. dynamically generated
+  component names.
+
+- The `Vite::Development` struct now accepts a `base` param to set a path prefix
+  on development vite script tags.
+  ([#35](https://github.com/mjhoy/axum-inertia/pull/35) thanks
+  [@Dsaquel](https://github.com/Dsaquel))
 
 ## [0.5.1] 2024-12-03
 
