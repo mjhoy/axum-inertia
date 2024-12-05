@@ -101,7 +101,7 @@
 //!     name: String,
 //! }
 //!
-//! impl<'a> FromRef<AppState> for InertiaConfig {
+//! impl FromRef<AppState> for InertiaConfig {
 //!     fn from_ref(app_state: &AppState) -> InertiaConfig {
 //!         app_state.inertia.clone()
 //!     }
