@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Remove static lifetime from `Page` struct.
+- Supports base public path in development
 
 
 ## [0.5.1] 2024-12-03
