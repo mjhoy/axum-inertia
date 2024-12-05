@@ -165,10 +165,7 @@ impl Production {
         main: &'static str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let mut manifest: HashMap<String, ManifestEntry> = serde_json::from_str(manifest_string)?;
-        let entry = manifest
-            .remove(main)
-            .ok_or(ViteError::EntryMissing(main.to_string().into_boxed_str()))?;
-
+        let entry = manifest.remove(main).ok_or(ViteError::EntryMissing(main))?;
         let mut hasher = Sha1::new();
         hasher.update(manifest_string.as_bytes());
         let result = hasher.finalize();
@@ -237,7 +234,7 @@ impl Production {
 #[derive(Debug)]
 pub enum ViteError {
     ManifestMissing(std::io::Error),
-    EntryMissing(Box<str>),
+    EntryMissing(&'static str),
 }
 
 impl std::fmt::Display for ViteError {
