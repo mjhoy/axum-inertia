@@ -34,16 +34,16 @@ use serde::Deserialize;
 use sha1::{Digest, Sha1};
 use std::collections::HashMap;
 
-pub struct Development<'a> {
+pub struct Development {
     port: u16,
-    main: &'a str,
-    lang: &'a str,
-    title: &'a str,
+    main: &'static str,
+    lang: &'static str,
+    title: &'static str,
     react: bool,
     https: bool,
 }
 
-impl Default for Development<'_> {
+impl Default for Development {
     fn default() -> Self {
         Development {
             port: 5173,
@@ -56,26 +56,23 @@ impl Default for Development<'_> {
     }
 }
 
-impl<'a> Development<'a>
-where
-    'a: 'static,
-{
+impl Development {
     pub fn port(mut self, port: u16) -> Self {
         self.port = port;
         self
     }
 
-    pub fn main(mut self, main: &'a str) -> Self {
+    pub fn main(mut self, main: &'static str) -> Self {
         self.main = main;
         self
     }
 
-    pub fn lang(mut self, lang: &'a str) -> Self {
+    pub fn lang(mut self, lang: &'static str) -> Self {
         self.lang = lang;
         self
     }
 
-    pub fn title(mut self, title: &'a str) -> Self {
+    pub fn title(mut self, title: &'static str) -> Self {
         self.title = title;
         self
     }
@@ -143,29 +140,29 @@ window.__vite_plugin_react_preamble_installed__ = true
     }
 }
 
-pub struct Production<'a> {
+pub struct Production {
     main: ManifestEntry,
     css: Option<String>,
-    title: &'a str,
-    lang: &'a str,
+    title: &'static str,
+    lang: &'static str,
     /// SHA1 hash of the contents of the manifest file.
     version: String,
 }
 
-impl<'a> Production<'a>
-where
-    'a: 'static,
-{
-    pub fn new(manifest_path: &str, main: &'a str) -> Result<Self, Box<dyn std::error::Error>> {
+impl Production {
+    pub fn new(
+        manifest_path: &str,
+        main: &'static str,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         let bytes = std::fs::read(manifest_path)?;
-        let manifest: &'a str = Box::leak(String::from_utf8(bytes)?.into_boxed_str());
+        let manifest: &'static str = Box::leak(String::from_utf8(bytes)?.into_boxed_str());
 
         Self::new_from_string(manifest, main)
     }
 
     fn new_from_string(
         manifest_string: &str,
-        main: &'a str,
+        main: &'static str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let mut manifest: HashMap<String, ManifestEntry> = serde_json::from_str(manifest_string)?;
         let entry = manifest
@@ -196,12 +193,12 @@ where
         })
     }
 
-    pub fn lang(mut self, lang: &'a str) -> Self {
+    pub fn lang(mut self, lang: &'static str) -> Self {
         self.lang = lang;
         self
     }
 
-    pub fn title(mut self, title: &'a str) -> Self {
+    pub fn title(mut self, title: &'static str) -> Self {
         self.title = title;
         self
     }
