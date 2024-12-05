@@ -2,8 +2,7 @@
 
 ## [Unreleased]
 
-- Remove static lifetimes, providing a better way of defining `str`
-fields.
+- Remove static lifetime from `Page` struct.
 
 
 ## [0.5.1] 2024-12-03
