@@ -38,7 +38,13 @@ where
         let original_uri = OriginalUri::from_request_parts(parts, state)
             .await
             .unwrap_or_else(|e| match e {});
-        let url = original_uri.0.path().to_string();
+        let query_string = parts
+            .uri
+            .to_string()
+            .split_once("?")
+            .map(|(_, second_half)| format!("?{second_half}"))
+            .unwrap_or_default();
+        let url = format!("{}{}", original_uri.0.path(), query_string);
         let is_xhr = parts
             .headers
             .get("X-Inertia")
@@ -244,6 +250,24 @@ mod tests {
 
         let res = client
             .get(format!("http://{}/test", &addr))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn it_extracts_urls_with_query() {
+        async fn handler(req: Request) {
+            assert_eq!(req.url, "/test?hello=world".to_string());
+        }
+        let app = Router::new().route("/test", get(handler));
+        let (_, addr) = spawn_test_app(app).await;
+
+        let client = reqwest::Client::new();
+
+        let res = client
+            .get(format!("http://{}/test?hello=world", &addr))
             .send()
             .await
             .unwrap();
