@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.7.0] 2025-03-03
+
+### Fixed
+
+- Include query params in the `url` field of the response. This was stripped out
+  before and would result in weird client
+  behavior. ([#40](https://github.com/mjhoy/axum-inertia/pull/40) thanks
+  [@Dsaquel](https://github.com/Dsaquel))
+
 ## [0.6.0] 2024-12-05
 
 ### Added
