@@ -38,13 +38,7 @@ where
         let original_uri = OriginalUri::from_request_parts(parts, state)
             .await
             .unwrap_or_else(|e| match e {});
-        let query_string = parts
-            .uri
-            .to_string()
-            .split_once("?")
-            .map(|(_, second_half)| format!("?{second_half}"))
-            .unwrap_or_default();
-        let url = format!("{}{}", original_uri.0.path(), query_string);
+        let url = original_uri.to_string();
         let is_xhr = parts
             .headers
             .get("X-Inertia")
