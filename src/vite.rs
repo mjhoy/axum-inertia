@@ -29,7 +29,7 @@
 //! [vitejs]: https://vitejs.dev
 use crate::config::InertiaConfig;
 use hex::encode;
-use maud::{html, PreEscaped};
+use maud::{html, PreEscaped, DOCTYPE};
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
 use std::collections::HashMap;
@@ -125,6 +125,7 @@ impl Development {
             };
             html! {
                 html lang=(self.lang) {
+                    (DOCTYPE)
                     head {
                         title { (self.title) }
                         meta charset="utf-8";
@@ -350,6 +351,7 @@ mod tests {
         let binding = config_layout(r#"{"someprops": "somevalues"}"#.to_string());
         let rendered_layout = binding.as_str();
 
+        assert!(rendered_layout.contains(r#"<!DOCTYPE html>"#));
         assert!(rendered_layout.contains(r#"<html lang="lang-id">"#));
         assert!(rendered_layout.contains(r#"<title>app-title-here</title>"#));
         assert!(rendered_layout.contains(r#"{&quot;someprops&quot;: &quot;somevalues&quot;}"#));
