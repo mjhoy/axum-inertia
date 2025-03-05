@@ -124,8 +124,8 @@ impl Development {
                 None
             };
             html! {
+                (DOCTYPE)
                 html lang=(self.lang) {
-                    (DOCTYPE)
                     head {
                         title { (self.title) }
                         meta charset="utf-8";
@@ -230,6 +230,7 @@ impl Production {
             let main_integrity = self.main.integrity.clone();
 
             html! {
+                (DOCTYPE)
                 html lang=(self.lang) {
                     head {
                         title { (self.title) }
@@ -415,6 +416,7 @@ mod tests {
         let binding = config_layout(r#"{"someprops": "somevalues"}"#.to_string());
         let rendered_layout = binding.as_str();
 
+        assert!(rendered_layout.contains(r#"<!DOCTYPE html>"#));
         assert!(rendered_layout
             .contains(r#"<script type="module" src="/main.hash-id-here.js"></script>"#));
         assert!(rendered_layout.contains(r#"<link rel="stylesheet" href="/style.css"/>"#));
