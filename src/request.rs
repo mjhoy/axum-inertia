@@ -1,5 +1,4 @@
 use crate::partial::Partial;
-use async_trait::async_trait;
 use axum::extract::{FromRequestParts, OriginalUri};
 use http::{request::Parts, HeaderMap, HeaderValue, StatusCode};
 
@@ -27,7 +26,6 @@ impl Request {
     }
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for Request
 where
     S: Send + Sync,

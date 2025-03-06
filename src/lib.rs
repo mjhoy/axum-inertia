@@ -137,7 +137,6 @@
 //! [axum]: https://crates.io/crates/axum
 //! [Extractor]: https://docs.rs/axum/latest/axum/#extractors
 
-use async_trait::async_trait;
 use axum::extract::{FromRef, FromRequestParts};
 pub use config::InertiaConfig;
 use http::{request::Parts, HeaderMap, HeaderValue, StatusCode};
@@ -160,7 +159,6 @@ pub struct Inertia {
     config: InertiaConfig,
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for Inertia
 where
     S: Send + Sync,
