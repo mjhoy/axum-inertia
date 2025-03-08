@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.8.0] 2025-03-08
+
+### Added
+
+- (Breaking) Update to axum v0.8.1. ([#44](https://github.com/mjhoy/axum-inertia/pull/44))
+- Adds missing <!DOCTYPE html> tag in the vite config. ([#43](https://github.com/mjhoy/axum-inertia/pull/43))
+
 ## [0.7.0] 2025-03-03
 
 ### Fixed
