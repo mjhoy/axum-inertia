@@ -7,10 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "An implementation of the Inertia.js protocol for Axum"
 repository = "https://github.com/mjhoy/axum-inertia"
 keywords = ["axum", "inertia"]
+rust-version = "1.75"
 
 [dependencies]
-axum = "0.7.5"
-async-trait = "0.1.74"
+axum = "0.8.1"
 http = "1.0.0"
 hyper = "1.0.1"
 serde = { version = "1.0.189", features = ["derive"] }
