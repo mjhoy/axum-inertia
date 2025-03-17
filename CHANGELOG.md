@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Development dependency updates.
+
 ## [0.8.1] 2025-03-17
 
 ### Added
