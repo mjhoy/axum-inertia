@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- Various dependency updates for local development.
+- (ci) Configure dependabot.
+
 ## [0.8.0] 2025-03-08
 
 ### Added
