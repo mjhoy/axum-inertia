@@ -24,8 +24,8 @@ See [crate documentation] for more information.
 1. Spin off a `bump-vX.X.X` branch
 2. Update the `CHANGELOG`; start a new `[Unreleased]` section
 3. Bump the version number in `Cargo.toml`
-4. Run `cargo release` (requires [cargo-release][cargo-release] -- this dry runs as a default to test)
-5. Merge PR if all goes well
+5. Merge PR
+4. On the commit on master, run `cargo release` (requires [cargo-release][cargo-release] -- this dry runs as a default to test)
 4. Update `main` branch locally and run `cargo release --execute`
 
 [cargo-release]: https://github.com/crate-ci/cargo-release
