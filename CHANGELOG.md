@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.8.1] 2025-03-17
+
 ### Added
 
 - Various dependency updates for local development.
