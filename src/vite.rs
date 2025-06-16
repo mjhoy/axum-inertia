@@ -225,9 +225,9 @@ impl Production {
 
     pub fn into_config(self) -> InertiaConfig {
         let layout = Box::new(move |props| {
-            let css = self.css.clone().unwrap_or("".to_string());
+            let css = self.css.as_deref().unwrap_or("");
             let main_path = format!("/{}", self.main.file);
-            let main_integrity = self.main.integrity.clone();
+            let main_integrity = self.main.integrity.as_deref();
 
             html! {
                 (DOCTYPE)
