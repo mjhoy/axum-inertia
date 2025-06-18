@@ -2,9 +2,25 @@
 
 ## [Unreleased]
 
+## [0.8.2] 2025-06-18
+
+Mostly just dependency updates.
+
 ### Added
 
-- Development dependency updates.
+- Development dependency updates:
+  - Bump openssl from 0.10.71 to 0.10.73
+  - Bump reqwest from 0.12.14 to 0.12.18
+  - Bump tokio from 1.44.1 to 1.45.1
+  - Bump axum from 0.8.1 to 0.8.4
+  - Bump url 2.4.1 to 2.5.4
+  - Bump reqwest from 0.12.14 to 0.12.15
+  - Bump hyper from 1.5.2 to 1.6.0
+
+### Fixed
+
+- Remove unnecessary string copies
+  ([#79](https://github.com/mjhoy/axum-inertia/pull/79)) thanks [@redzic](https://github.com/redzic)
 
 ## [0.8.1] 2025-03-17
 
