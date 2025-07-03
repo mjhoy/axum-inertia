@@ -23,5 +23,5 @@ maud = "0.27.0"
 [dev-dependencies]
 reqwest = "0.12.14"
 tokio = { version = "1.34.0", features = ["full"] }
-tower-http = { version = "0.5.0", features = ["set-header", "trace"] }
+tower-http = { version = "0.6.6", features = ["set-header", "trace"] }
 http-body-util = "0.1.0"
