@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.9.0] 2025-07-25
+
+`axum-inertia` will now include a `Vary` header to fix issues with browsers
+reusing json reponses when they should intead request a new html page.
+
+### Fixed
+
+- Include a `Vary` header to fix browser caching. ([#83](https://github.com/mjhoy/axum-inertia/pull/83))
+
+### Added
+
+- Bump tower-http from 0.5.2 to 0.6.6. ([#81](https://github.com/mjhoy/axum-inertia/pull/81))
+- Bump reqwest from 0.12.18 to 0.12.21. ([#82](https://github.com/mjhoy/axum-inertia/pull/82))
+- Fixes for some clippy lints. ([#84](https://github.com/mjhoy/axum-inertia/pull/84))
+
 ## [0.8.2] 2025-06-18
 
 Mostly just dependency updates.
