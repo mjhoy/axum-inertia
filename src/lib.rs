@@ -229,7 +229,7 @@ mod tests {
         }
 
         let layout =
-            Box::new(|props| format!(r#"<html><body><div id="app" data-page='{}'></div>"#, props));
+            Box::new(|props| format!(r#"<html><body><div id="app" data-page='{props}'></div>"#));
 
         let config = InertiaConfig::new(Some("123".to_string()), layout);
 
@@ -265,7 +265,7 @@ mod tests {
         }
 
         let layout =
-            Box::new(|props| format!(r#"<html><body><div id="app" data-page='{}'></div>"#, props));
+            Box::new(|props| format!(r#"<html><body><div id="app" data-page='{props}'></div>"#));
 
         let inertia = InertiaConfig::new(Some("123".to_string()), layout);
 
