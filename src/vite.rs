@@ -265,7 +265,7 @@ impl std::fmt::Display for ViteError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ManifestMissing(_) => write!(f, "couldn't open manifest file"),
-            Self::EntryMissing(entry) => write!(f, "manifest missing entry for {}", entry),
+            Self::EntryMissing(entry) => write!(f, "manifest missing entry for {entry}"),
         }
     }
 }
