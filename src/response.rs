@@ -21,6 +21,7 @@ impl IntoResponse for Response<'_> {
         }
         if self.request.is_xhr {
             headers.insert("X-Inertia", "true".parse().unwrap());
+            headers.insert("Vary", "X-Inertia".parse().unwrap());
             (headers, Json(self.page)).into_response()
         } else {
             let html = (self.config.layout())(serde_json::to_string(&self.page).unwrap());
