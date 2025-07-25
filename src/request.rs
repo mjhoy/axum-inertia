@@ -1,6 +1,6 @@
 use crate::partial::Partial;
 use axum::extract::{FromRequestParts, OriginalUri};
-use http::{HeaderMap, HeaderValue, StatusCode, request::Parts};
+use http::{request::Parts, HeaderMap, HeaderValue, StatusCode};
 
 /// Inertia-related information in the request.
 ///
@@ -84,7 +84,7 @@ mod tests {
     use std::net::SocketAddr;
 
     use super::*;
-    use axum::{self, Router, routing::get};
+    use axum::{self, routing::get, Router};
     use reqwest::StatusCode;
     use tokio::net::TcpListener;
     use tokio::task::JoinHandle;
