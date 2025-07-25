@@ -139,7 +139,7 @@
 
 use axum::extract::{FromRef, FromRequestParts};
 pub use config::InertiaConfig;
-use http::{request::Parts, HeaderMap, HeaderValue, StatusCode};
+use http::{HeaderMap, HeaderValue, StatusCode, request::Parts};
 use page::Page;
 use props::Props;
 use request::Request;
@@ -217,7 +217,7 @@ impl Inertia {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::{self, response::IntoResponse, routing::get, Router};
+    use axum::{self, Router, response::IntoResponse, routing::get};
     use reqwest::StatusCode;
     use serde_json::json;
     use tokio::net::TcpListener;
