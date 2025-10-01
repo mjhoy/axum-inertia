@@ -193,7 +193,7 @@ impl Inertia {
     }
 
     /// Renders an Inertia response.
-    pub fn render<S: Props>(self, component: &str, props: S) -> Response {
+    pub fn render<S: Props>(self, component: &str, props: S) -> Response<'_> {
         let request = self.request;
         let url = request.url.clone();
         let page = Page {
