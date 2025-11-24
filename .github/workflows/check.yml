@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     name: stable / fmt
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: true
       - name: Install stable
@@ -32,6 +32,6 @@ jobs:
       matrix:
         toolchain: [stable, beta]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features
