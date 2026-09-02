@@ -246,9 +246,7 @@ mod tests {
             axum::serve(listener, app).await.expect("server error");
         });
 
-        let res = reqwest::get(format!("http://{}/test", &addr))
-            .await
-            .unwrap();
+        let res = reqwest::get(format!("http://{}/test", addr)).await.unwrap();
         assert_eq!(res.status(), StatusCode::OK);
         assert_eq!(
             res.headers()
@@ -285,7 +283,7 @@ mod tests {
         let client = reqwest::Client::new();
 
         let res = client
-            .get(format!("http://{}/test", &addr))
+            .get(format!("http://{}/test", addr))
             .header("X-Inertia", "true")
             .header("X-Inertia-Version", "456")
             .send()
