@@ -113,7 +113,7 @@ mod tests {
         let client = reqwest::Client::new();
 
         let res = client
-            .get(format!("http://{}/test", &addr))
+            .get(format!("http://{}/test", addr))
             .header("X-Inertia", "true")
             .send()
             .await
@@ -132,7 +132,7 @@ mod tests {
         let client = reqwest::Client::new();
 
         let res = client
-            .get(format!("http://{}/test", &addr))
+            .get(format!("http://{}/test", addr))
             .header("X-Inertia", "false")
             .send()
             .await
@@ -151,7 +151,7 @@ mod tests {
         let client = reqwest::Client::new();
 
         let res = client
-            .get(format!("http://{}/test", &addr))
+            .get(format!("http://{}/test", addr))
             .header("X-Inertia-Version", "version")
             .send()
             .await
@@ -170,7 +170,7 @@ mod tests {
         let client = reqwest::Client::new();
 
         let res = client
-            .get(format!("http://{}/test", &addr))
+            .get(format!("http://{}/test", addr))
             .send()
             .await
             .unwrap();
@@ -191,7 +191,7 @@ mod tests {
         let client = reqwest::Client::new();
 
         let res = client
-            .get(format!("http://{}/test", &addr))
+            .get(format!("http://{}/test", addr))
             .header("X-Inertia", "true")
             .header("X-Inertia-Partial-Component", "PartialComponent")
             .header("X-Inertia-Partial-Data", "one,two")
@@ -212,7 +212,7 @@ mod tests {
         let client = reqwest::Client::new();
 
         let res = client
-            .get(format!("http://{}/test", &addr))
+            .get(format!("http://{}/test", addr))
             .header("X-Inertia", "true")
             .header("X-Inertia-Partial-Data", "one,two")
             .send()
@@ -221,7 +221,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
 
         let res = client
-            .get(format!("http://{}/test", &addr))
+            .get(format!("http://{}/test", addr))
             .header("X-Inertia", "true")
             .header("X-Inertia-Partial-Component", "PartialComponent")
             .send()
@@ -241,7 +241,7 @@ mod tests {
         let client = reqwest::Client::new();
 
         let res = client
-            .get(format!("http://{}/test", &addr))
+            .get(format!("http://{}/test", addr))
             .send()
             .await
             .unwrap();
@@ -259,7 +259,7 @@ mod tests {
         let client = reqwest::Client::new();
 
         let res = client
-            .get(format!("http://{}/test?hello=world", &addr))
+            .get(format!("http://{}/test?hello=world", addr))
             .send()
             .await
             .unwrap();
@@ -278,7 +278,7 @@ mod tests {
         let client = reqwest::Client::new();
 
         let res = client
-            .get(format!("http://{}/outer/test", &addr))
+            .get(format!("http://{}/outer/test", addr))
             .send()
             .await
             .unwrap();
